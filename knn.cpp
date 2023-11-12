@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
+#include<iostream>
 
 #include "yourSolution.h"
 
@@ -243,11 +244,20 @@ bool test(const float * ref,
  * 3. Test the different implementation of the k-NN algorithm.
  */
 int main(void) {
+
+    const int ref_nb   = 4096;
+    const int query_nb = 10;
+    const int dim      = 64;
+    const int k        = 3;
+    
+
     // Parameters 0 (to develop your solution)
+    /*
     const int ref_nb   = 4096;
     const int query_nb = 1024;
     const int dim      = 64;
     const int k        = 16;
+    */
 
     // Parameters 1
     // const int ref_nb   = 16384;
@@ -312,7 +322,11 @@ int main(void) {
     // Test all k-NN functions
     printf("TESTS\n");
     test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &knn_c,            "knn_c",              2);
-    test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &your_solution,  "yourSolution",         100);
+
+    /*for(int i = 0; i < k*query_nb; ++i)
+        std::cout << "indexes found: " << knn_index[i] <<" distances " << knn_dist[i] << std::endl;
+    */
+    test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &your_solution,  "yourSolution",         1); // it was 100
 
     // Deallocate memory 
     free(ref);

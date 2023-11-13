@@ -2,109 +2,10 @@
 #include <iostream>
 #include <cuda.h>
 
-/**
- * Computes the Euclidean distance between a reference point and a query point.
- */
-float cosine_distance_testGPU(const float * ref,
-                       int           ref_nb,
-                       const float * query,
-                       int           query_nb,
-                       int           dim,
-                       int           ref_index,
-                       int           query_index) {
-
-   double dot = 0.0, denom_a = 0.0, denom_b = 0.0 ;
-     for(unsigned int d = 0u; d < dim; ++d) {
-        dot += ref[d * ref_nb + ref_index] * query[d * query_nb + query_index] ;
-        denom_a += ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index] ;
-        denom_b += query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
+__global__ void fillArrayKernel(int *array, int size) {
+    for (int i = 0; i < size; ++i) {
+        array[i] = i;  // Filling the array with numbers from 0 to 10
     }
-    return dot / (sqrt(denom_a) * sqrt(denom_b)) ;
-}
-
-__device__ void insertion_sort_gpu(float *dist, int *index, int length, int k){
-        // Initialise the first index
-    index[0] = 0;
-
-    // Go through all points
-    for (int i=1; i<length; ++i) {
-
-        // Store current distance and associated index
-        float curr_dist  = dist[i];
-        int   curr_index = i;
-
-        // Skip the current value if its index is >= k and if it's higher the k-th slready sorted mallest value
-        if (i >= k && curr_dist >= dist[k-1]) {
-            continue;
-        }
-
-        // Shift values (and indexes) higher that the current distance to the right
-        //int j = std::min(i, k-1);
-        int j = i < k-1 ? i : k-1; 
-        while (j > 0 && dist[j-1] > curr_dist) {
-            dist[j]  = dist[j-1];
-            index[j] = index[j-1];
-            --j;
-        }
-
-        // Write the current distance and index at their position
-        dist[j]  = curr_dist;
-        index[j] = curr_index; 
-    }
-}
-
-__global__ void cosine_distance_gpu(const float * ref,
-                       int           ref_nb,
-                       const float * query,
-                       int           query_nb,
-                       int           dim,
-                       int           ref_index,
-                       int           query_index,
-                       int *         distance) {
-
-    double dot = 0.0, denom_a = 0.0, denom_b = 0.0 ;
-    for(unsigned int d = 0u; d < dim; ++d) {
-        dot += ref[d * ref_nb + ref_index] * query[d * query_nb + query_index] ;
-        denom_a += ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index] ;
-        denom_b += query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
-    }
-    *distance = dot / (sqrt(denom_a) * sqrt(denom_b)) ;
-}
-
-__global__ void knn_gpu(const float *  ref,
-                        int           ref_nb,
-                        const float * query,
-                        int           query_nb,
-                        int           dim,
-                        int           k,
-                        float *       knn_dist,
-                        int *         knn_index){
-
-    // Allocate local array to store all the distances / indexes for a given query point 
-    float * dist  = (float *) malloc(ref_nb * sizeof(float));
-    int *   index = (int *)   malloc(ref_nb * sizeof(int));
-
-    // Process one query point at the time
-    for (int i=0; i<query_nb; ++i) {
-
-        // Compute all distances / indexes
-        for (int j=0; j<ref_nb; ++j) {
-            //dist[j]  = cosine_distance_gpu(ref, ref_nb, query, query_nb, dim, j, i);
-            index[j] = j;
-        }
-
-        // Sort distances / indexes
-        insertion_sort_gpu(dist, index, ref_nb, k);
-
-        // Copy k smallest distances and their associated index
-        for (int j=0; j<k; ++j) {
-            knn_dist[j * query_nb + i]  = dist[j];
-            knn_index[j * query_nb + i] = index[j];
-        }
-    }
-
-    free(index);
-    free(dist);
 }
 
 bool your_solution(const float * ref,
@@ -129,65 +30,57 @@ bool your_solution(const float * ref,
     * @input knn_index array with the solution of the classification
     */
 
-    // ---------------------------------- Creating data location on gpu -------------------------------
-    // Location for all reference data
-    float * ref_gpu;
-    cudaMallocManaged(&ref_gpu, ref_nb*dim*sizeof(float));
+    const int arraySize = 10;  // Change the array size as needed
+    int hostArray[arraySize];   // Host array to store the result
 
-    // Location for all query data
-    float * query_gpu;
-    cudaMallocManaged(&query_gpu, query_nb*dim*sizeof(float));
+    int *deviceArray;  // Device array
 
-    // Location for the k-nearest distances
-    float * knn_dist_gpu;
-    cudaMallocManaged(&knn_dist_gpu, query_nb*k*sizeof(float));
+    cudaError_t cudaStatus;
 
-    // Location for the k-nearest index
-    int * knn_index_gpu;
-    cudaMallocManaged(&knn_index_gpu, query_nb*k*sizeof(int));
+    // Allocate memory on the GPU
+    cudaStatus = cudaMalloc((void**)&deviceArray, arraySize * sizeof(int));
+    if (cudaStatus != cudaSuccess) {
+        std::cerr << "\ncudaMalloc failed: " << cudaGetErrorString(cudaStatus) << std::endl;
+        return 1;
+    }
 
-    // test
-    int * distance_gpu;
-    cudaMallocManaged(&distance_gpu, sizeof(int));
-    int distance = 0;
+    // Launch the kernel with 1 grid and 1 block
+    fillArrayKernel<<<1, 1>>>(deviceArray, arraySize);
 
-    // ---------------------------------- Transfering data on device -------------------------------
+    // Check for kernel launch errors
+    cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess) {
+        std::cerr << "\nKernel launch failed: " << cudaGetErrorString(cudaStatus) << std::endl;
+        cudaFree(deviceArray);
+        return 1;
+    }
+    // Synchronize the device to make sure the kernel has finished
+    cudaStatus = cudaDeviceSynchronize();
+    if (cudaStatus != cudaSuccess) {
+        std::cerr << "\ncudaDeviceSynchronize failed: " << cudaGetErrorString(cudaStatus) << std::endl;
+        cudaFree(deviceArray);
+        return 1;
+    }
 
-    cudaMemcpy(ref_gpu, ref, ref_nb*dim*sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(query_gpu, query, query_nb*dim*sizeof(float), cudaMemcpyHostToDevice);
+    // Copy the result back to the host
+    cudaStatus = cudaMemcpy(hostArray, deviceArray, arraySize * sizeof(int), cudaMemcpyDeviceToHost);
+    if (cudaStatus != cudaSuccess) {
+        std::cerr << "\ncudaMemcpy failed: " << cudaGetErrorString(cudaStatus) << std::endl;
+        cudaFree(deviceArray);
+        return 1;
+    }
 
-    // ---------------------------------- Kernel launching -------------------------------
+    // Output the result
+    std::cout << "\nResult: ";
+    for (int i = 0; i < arraySize; ++i) {
+        std::cout << hostArray[i] << " ";
+    }
+    std::cout << std::endl;
 
-    std::cout << "\n...launching kernel...\n";
-    
-    //knn_gpu<<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
-    cosine_distance_gpu <<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, 0, 1, distance_gpu);
-    distance = cosine_distance_testGPU(ref, ref_nb, query, query_nb, dim, 0, 1);
+    // Free the allocated memory on the GPU
+    cudaFree(deviceArray);
 
-    std::cout << "Distance on cpu: " << distance << " on gpu: " << *distance_gpu << std::endl;
+    return 0;
 
-    
-    std::cout << "...kernel finished...\n";
-    
-    // ---------------------------------- Transfering data on host -------------------------------
-
-    //cudaMemcpy(knn_dist, knn_dist_gpu, query_nb*k*sizeof(float), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(knn_index, knn_index_gpu, query_nb*k*sizeof(int), cudaMemcpyDeviceToHost);
-
-    // ---------------------------------- Debug -------------------------------
-
-    /*for(int i = 0; i < k*query_nb; ++i){
-        std::cout << "indexes found: " << knn_index[i] <<" distances " << knn_dist[i] << std::endl;
-    }*/
-
-    // ---------------------------------- Free memory -------------------------------
-
-    cudaFree(ref_gpu);
-    cudaFree(query_gpu);
-    cudaFree(knn_dist_gpu);
-    cudaFree(knn_index_gpu);
-    
-
-    return true;
 }
 

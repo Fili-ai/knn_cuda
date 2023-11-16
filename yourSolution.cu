@@ -7,8 +7,8 @@
 */
 
 #define gpuErrchk(ans) { gpuAssert((ans), __LINE__); }
-inline void gpuAssert(cudaError_t code, int line, bool abort = false) {
-    if (code != cudaSuccess) {
+inline void gpuAssert(cudaError_t code, int line, bool abort = false, bool log = true) {
+    if (log && code != cudaSuccess) {
         fprintf(stderr, "GPUassert: line %d - %s\n", line, cudaGetErrorString(code));
         if (abort)
             exit(code);

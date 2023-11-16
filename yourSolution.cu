@@ -2,8 +2,21 @@
 #include <iostream>
 #include <cuda.h>
 
+/**
+* Error checking function;
+*/
+
+#define gpuErrchk(ans) { gpuAssert((ans), __LINE__); }
+inline void gpuAssert(cudaError_t code, int line, bool abort = false) {
+    if (code != cudaSuccess) {
+        fprintf(stderr, "GPUassert: line %d - %s\n", line, cudaGetErrorString(code));
+        if (abort)
+            exit(code);
+    }
+}
+
 __device__ void insertion_sort_gpu(float *dist, int *index, int length, int k){
-        // Initialise the first index
+    // Initialise the first index
     index[0] = 0;
 
     // Go through all points
@@ -53,7 +66,7 @@ __device__ float cosine_distance_gpu(const float * ref,
     return dot / (sqrt(denom_a) * sqrt(denom_b)) ;
 }
 
-__global__ void knn_gpu(const float *  ref,
+__global__ void knn_gpu_1_Block_Grid(const float *  ref,
                         int           ref_nb,
                         const float * query,
                         int           query_nb,
@@ -89,6 +102,45 @@ __global__ void knn_gpu(const float *  ref,
     free(dist);
 }
 
+__global__ void knn_gpu(const float *  ref,
+                        int           ref_nb,
+                        const float * query,
+                        int           query_nb,
+                        int           dim,
+                        int           k,
+                        float *       knn_dist,
+                        int *         knn_index){
+
+    // Allocate local array to store all the distances / indexes for a given query point 
+    float * dist  = (float *) malloc(ref_nb * sizeof(float));
+    int *   index = (int *)   malloc(ref_nb * sizeof(int));
+
+    // Process one query point at the time
+    for (int query_index = threadIdx.x; query_index < query_nb; query_index += blockDim.x) {
+
+        
+        // Compute all distances / indexes
+        for (int j=0; j<ref_nb; ++j) {
+            dist[j]  = cosine_distance_gpu(ref, ref_nb, query, query_nb, dim, j, query_index);
+            index[j] = j;
+        }
+
+        
+        // Sort distances / indexes
+        insertion_sort_gpu(dist, index, ref_nb, k);
+
+        // Copy k smallest distances and their associated index
+        for (int j = 0; j < k; ++j) {
+            knn_dist[query_index + j]  = dist[j];
+            knn_index[query_index + j] = index[j];
+        }
+        
+    }
+
+    free(index);
+    free(dist);
+}
+
 bool your_solution(const float * ref,
                      int           ref_nb,
                      const float * query,
@@ -111,47 +163,59 @@ bool your_solution(const float * ref,
     * @input knn_index array with the solution of the classification
     */
 
+    std::cout << "\nStarting Gpu function\n";
+
+    // ---------------------------------- Variables' declaration ------------------------------- 
+
+    int block_size = 1024;
+    int grid = query_nb/block_size;    
+
     // ---------------------------------- Creating data location on gpu -------------------------------
     // Location for all reference data
     float * ref_gpu;
-    cudaMallocManaged(&ref_gpu, ref_nb*dim*sizeof(float));
+    gpuErrchk(cudaMallocManaged(&ref_gpu, ref_nb*dim*sizeof(float)));
 
     // Location for all query data
     float * query_gpu;
-    cudaMallocManaged(&query_gpu, query_nb*dim*sizeof(float));
+    gpuErrchk(cudaMallocManaged(&query_gpu, query_nb*dim*sizeof(float)));
 
     // Location for the k-nearest distances
     float * knn_dist_gpu;
-    cudaMallocManaged(&knn_dist_gpu, query_nb*k*sizeof(float));
+    gpuErrchk(cudaMallocManaged(&knn_dist_gpu, query_nb*k*sizeof(float)));
 
     // Location for the k-nearest index
     int * knn_index_gpu;
-    cudaMallocManaged(&knn_index_gpu, query_nb*k*sizeof(int));
+    gpuErrchk(cudaMallocManaged(&knn_index_gpu, query_nb*k*sizeof(int)));
 
     // ---------------------------------- Transfering data on device -------------------------------
 
-    cudaMemcpy(ref_gpu, ref, ref_nb*dim*sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(query_gpu, query, query_nb*dim*sizeof(float), cudaMemcpyHostToDevice);
+    gpuErrchk(cudaMemcpy(ref_gpu, ref, ref_nb*dim*sizeof(float), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(query_gpu, query, query_nb*dim*sizeof(float), cudaMemcpyHostToDevice));
+
+    gpuErrchk(cudaDeviceSynchronize());
 
     // ---------------------------------- Kernel launching -------------------------------
 
-    std::cout << "\nStarting kernels";
+    knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
+    //knn_gpu_1_Block_Grid<<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
 
-    knn_gpu<<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
-    
-    std::cout << "\nFinished kernels\n";
     // ---------------------------------- Transfering data on host -------------------------------
 
-    cudaMemcpy(knn_dist, knn_dist_gpu, query_nb*k*sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(knn_index, knn_index_gpu, query_nb*k*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
 
-    // ---------------------------------- Debug -------------------------------
+    gpuErrchk(cudaMemcpy(knn_dist, knn_dist_gpu, query_nb*k*sizeof(float), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(knn_index, knn_index_gpu, query_nb*k*sizeof(int), cudaMemcpyDeviceToHost));
+
+    cudaDeviceSynchronize();
+
+    // ---------------------------------- Debug section -------------------------------
 
     /*
     for(int i = 0; i < k*query_nb; ++i){
         std::cout << "indexes found: " << knn_index[i] <<" distances " << knn_dist[i] << std::endl;
     }
     */
+    
 
     // ---------------------------------- Free memory -------------------------------
 

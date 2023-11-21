@@ -3,6 +3,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+
+
 // #include "Solution1.cu"
 // #include "Solution2.cu"
 #include "Solution3.cu"
@@ -43,8 +45,8 @@ bool your_solution(const float * ref,
 
     // ---------------------------------- Variables' declaration ------------------------------- 
 
-    int block_size = 1024;
-    int grid = (query_nb + block_size -1)/block_size;    
+    dim3 block_size(1024, 1, 1);
+    dim3 grid((query_nb + block_size.x - 1) / block_size.x, 1, 1);
 
     // ---------------------------------- Creating data location on gpu -------------------------------
     // Location for all reference data
@@ -100,10 +102,11 @@ bool your_solution(const float * ref,
     for(int i = 0; i < query_nb; ++i){
         std::cout<< i <<" query:" << std::endl; 
         for (int j = 0; j < k; ++j){
-            std::cout << "\treference index: " << knn_index[i*k + j] << " dist: " << knn_dist[i*k + j] <<std::endl;
+            std::cout << "\treference index: " << knn_index[i + j*query_nb] << " dist: " << knn_dist[i + j*query_nb] <<std::endl;
         }
     } 
     */
+    
     
     // ---------------------------------- Free memory -------------------------------
 

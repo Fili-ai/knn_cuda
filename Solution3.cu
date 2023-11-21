@@ -16,35 +16,45 @@ __device__ void insertion_sort_gpu( const float *dist,
     // Allocate local array to store all the distances / indexes for a given query point 
     float * dist_sorted  = (float *) malloc((k+1) * sizeof(float));
     int *   index_sorted = (int *)   malloc((k+1) * sizeof(int));
+    float curr_dist;
+    int  curr_index;
     
-    // Go through all points
     for (int i=0; i<length; ++i) {
 
         // Store current distance and associated index
-        float curr_dist  = dist[query_index + i * query_nb];
-        int  curr_index = index[query_index + i * query_nb];
-
+        curr_dist  = dist[query_index + i * query_nb];
+        curr_index = index[query_index + i * query_nb];     
+        
         // Skip the current value if its index is >= k and if it's higher the k-th slready sorted mallest value
         if (i >= k && curr_dist >= dist_sorted[k-1]) {
             continue;
         }
 
         // Shift values (and indexes) higher that the current distance to the right
-        int j = i < k-1 ? i : k-1; 
-        while (j > 0 && dist_sorted[j-1] > curr_dist) {
+        int j = i < k-1 ? i : k-1;  
+        while (j >= 0 && dist_sorted[j-1] > curr_dist) {
             dist_sorted[j]  = dist_sorted[j-1];
             index_sorted[j] = index_sorted[j-1];
             --j;
         }
-
+    
         // Write the current distance and index at their position
         dist_sorted[j]  = curr_dist;
         index_sorted[j] = curr_index; 
-    }
         
+        
+    }
+    
+
     for(int i = 0; i < k; ++i){
+        /*
+        // to save the k distances consecutively
         knn_index[query_index*k + i] = index_sorted[i];
         knn_dist[query_index*k + i] = dist_sorted[i];
+        */
+        // to save the k distances at distance query_nb
+        knn_index[query_index + i * query_nb] = index_sorted[i];
+        knn_dist[query_index + i * query_nb] = dist_sorted[i];
     }
 
     free(dist_sorted);
@@ -85,7 +95,6 @@ __global__ void knn_gpu(const float *  ref,
 
     // Process one query point at the time
     for (int query_index = blockIdx.x * blockDim.x + threadIdx.x; query_index < query_nb; query_index += blockDim.x * gridDim.x) {
-        
         // Compute query distance from every reference
         for(int reference = 0; reference < ref_nb; reference++){
             index[query_index + reference*query_nb] =  reference;

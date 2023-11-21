@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
+
 #include<iostream>
 
 #include "yourSolution.h"
@@ -209,6 +210,13 @@ bool test(const float * ref,
     int nb_correct_precisions = 0;
     int nb_correct_indexes    = 0;
     for (int i=0; i<query_nb*k; ++i) {
+        if(name != "knn_c"){
+            if(i % k == 0)
+                std::cout << "\nQuery: " << i/k<< std::endl;
+            std::cout << "\n CPU: index " << gt_knn_index[i] << " \tdistance " << gt_knn_dist[i] << std::endl;
+            std::cout << " GPU: index " << test_knn_index[i] << " \tdistance " << test_knn_dist[i] << std::endl ;
+        }
+
         if (fabs(test_knn_dist[i] - gt_knn_dist[i]) <= precision) {
             nb_correct_precisions++;
         }
@@ -226,7 +234,7 @@ bool test(const float * ref,
         printf("PASSED in %8.5f seconds (averaged over %3d iterations)\n", elapsed_time / nb_iterations, nb_iterations);
     }
     else {
-        printf("FAILED\n");
+        printf("FAILED in %8.5f seconds (averaged over %3d iterations)\n", elapsed_time / nb_iterations, nb_iterations);
     }
 
     // Free memory
@@ -245,9 +253,9 @@ bool test(const float * ref,
 int main(void) {
     // Parameters 0 (to develop your solution)
     const int ref_nb   = 4096;
-    const int query_nb = 1024;
+    const int query_nb = 4; // 1024
     const int dim      = 64;
-    const int k        = 16;
+    const int k        = 4; // 16
 
     // Parameters 1
     // const int ref_nb   = 16384;

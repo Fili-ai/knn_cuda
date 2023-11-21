@@ -5,7 +5,7 @@
 
 // #include "Solution1.cu"
 // #include "Solution2.cu"
-// #include "Solution3.cu"
+#include "Solution3.cu"
 
 /**
 * Error checking function;
@@ -87,7 +87,7 @@ bool your_solution(const float * ref,
     //knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
     
     // Solution - 3
-    knn_gpu_v2<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
+    knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
     
     // ---------------------------------- Transfering data on host -------------------------------
 
@@ -98,17 +98,14 @@ bool your_solution(const float * ref,
 
     // ---------------------------------- Debug section -------------------------------
 
-    
+    /*
     for(int i = 0; i < query_nb; ++i){
         std::cout<< i <<" query:" << std::endl; 
-
         for (int j = 0; j < k; ++j){
-            std::cout << "\treference index: " << knn_index[i + j] << " dist: " << knn_dist[i + j] <<std::endl;
+            std::cout << "\treference index: " << knn_index[i*k + j] << " dist: " << knn_dist[i*k + j] <<std::endl;
         }
-    }
+    } */
     
-    
-
     // ---------------------------------- Free memory -------------------------------
 
     cudaFree(ref_gpu);

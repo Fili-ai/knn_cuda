@@ -1,53 +1,70 @@
+#pragma once
+
+__device__ void bubbleSort(int* indexes, float* distances, int size) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size - 1; j++) {
+            if (distances[j] > distances[j + 1]) {
+                // Swap distances
+                float tempDist = distances[j];
+                distances[j] = distances[j + 1];
+                distances[j + 1] = tempDist;
+
+                // Swap indexes accordingly
+                int tempIndex = indexes[j];
+                indexes[j] = indexes[j + 1];
+                indexes[j + 1] = tempIndex;
+            }
+        }
+    }
+}
+
+
 /**
 * Insertion sort given with data coaliscent 
 */
-__device__ void insertion_sort_gpu(float *dist, int *index, int length, int k, int query_nb, int query_index){
+__device__ void insertion_sort_gpu( const float *dist, 
+                                    const int *index, 
+                                    const int length, 
+                                    const int k, 
+                                    const int query_nb, 
+                                    const int query_index, 
+                                    int * knn_index,
+                                    float * knn_dist){
     
-    /*
-    // Initialise the first index
-    index_sort[0] = 0;
 
-    // Go through all points
-    for (int i=1; i<length; i++) {
-
-        // Store current distance and associated index
-        float curr_dist  = dist_sort[query_index + i*query_nb];
-        int   curr_index = i;
-
-        // Skip the current value if its index is >= k and if it's higher the k-th slready sorted mallest value    
-        if (i >= k && curr_dist >= dist_sort[query_index + (k-1)*query_nb]) {
-            continue;
+    // Allocate local array to store all the distances / indexes for a given query point 
+    float * dist_sorted  = (float *) malloc((k+1) * sizeof(float));
+    int *   index_sorted = (int *)   malloc((k+1) * sizeof(int));
+    
+    
+    for(int i = 0; i < length; ++i){
+        if(i < k){
+            index_sorted[i] = index[query_index + i * query_nb];
+            dist_sorted[i] = dist[query_index + i * query_nb];
+            if(i > 0)
+                bubbleSort(index_sorted, dist_sorted, i+1);
         }
         
+        else{
+            if(dist[query_index + i * query_nb] < dist_sorted[k-1]){ 
+                
+                // add the more fitting point
+                index_sorted[k] = index[query_index + i * query_nb];
+                dist_sorted[k] = dist[query_index + i * query_nb];
 
-        // Shift values (and indexes) higher that the current distance to the right
-        int j = i < k - 1 ? i : k - 1;
-        while (j > 0 && dist_sort[query_index + (j - 1) * query_nb] > curr_dist) {
-            dist_sort[query_index + j * query_nb] = dist_sort[query_index +  (j - 1) * query_nb];
-            index_sort[query_index +  j * query_nb] = index_sort[(query_index +  j - 1) * query_nb];
-            --j;
-        }
-
-        // Write the current distance and index at their position
-        dist_sort[query_index + j * query_nb] = curr_dist;
-        index_sort[query_index + j * query_nb] = curr_index;
+                //sort the new array
+                bubbleSort(index_sorted, dist_sorted, k + 1);                
+            }
+        }       
     }
-    */
 
-    // store in a multimap as kay the dist and as value the index, to sort it automatically
-    std::multimap<float, unsigned int> pairs;
-
-    for(int i = query_index; i < length; i += query_nb){
-        
-        pairs.insert(pair<float, unsigned>(i, dist[i]));
-
-        if(pairs.size() == k){
-            // erase the last element, which has the highest distance
-            mp.erase(prev(mp.end())); 
-        }
-
+    for(int i = 0; i < k; ++i){
+        knn_index[query_index*k + i] = index_sorted[i];
+        knn_dist[query_index*k + i] = dist_sorted[i];
     }
+    
 }
+
 
 /**
  * Computes the Euclidean distance between a reference point and a query point.
@@ -91,12 +108,7 @@ __global__ void knn_gpu(const float *  ref,
         } 
 
         //data coalescent insertion sort
-        insertion_sort_gpu(dist, index, ref_nb, k, query_nb, query_index);
-
-        // from coalescent data (index and dist) to sequential data (knn_index and knn_dist)
-        for(int reference = 0; reference < k; ++reference){
-            knn_index[query_index + reference] = index[query_index + reference * query_nb];
-            knn_dist[query_index + reference] = dist[query_index + reference * query_nb];
-        } 
+        insertion_sort_gpu(dist, index, ref_nb, k, query_nb, query_index, knn_index, knn_dist);
+                
     }
 }

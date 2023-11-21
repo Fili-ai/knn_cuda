@@ -41,8 +41,6 @@ bool your_solution(const float * ref,
     * @input knn_index array with the solution of the classification
     */
 
-    std::cout << "\nStarting Gpu function\n";
-
     // ---------------------------------- Variables' declaration ------------------------------- 
 
     int block_size = 1024;
@@ -104,7 +102,8 @@ bool your_solution(const float * ref,
         for (int j = 0; j < k; ++j){
             std::cout << "\treference index: " << knn_index[i*k + j] << " dist: " << knn_dist[i*k + j] <<std::endl;
         }
-    } */
+    } 
+    */
     
     // ---------------------------------- Free memory -------------------------------
 

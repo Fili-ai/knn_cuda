@@ -211,10 +211,12 @@ bool test(const float * ref,
     int nb_correct_indexes    = 0;
     for (int i=0; i<query_nb*k; ++i) {
         if(name != "knn_c"){
+            /*
             if(i % k == 0)
                 std::cout << "\nQuery: " << i/k<< std::endl;
             std::cout << "\n CPU: index " << gt_knn_index[i] << " \tdistance " << gt_knn_dist[i] << std::endl;
-            std::cout << " GPU: index " << test_knn_index[i] << " \tdistance " << test_knn_dist[i] << std::endl ;
+            std::cout << " GPU: index " << test_knn_index[i] << " \tdistance " << test_knn_dist[i] << std::endl;
+            */
         }
 
         if (fabs(test_knn_dist[i] - gt_knn_dist[i]) <= precision) {
@@ -253,9 +255,9 @@ bool test(const float * ref,
 int main(void) {
     // Parameters 0 (to develop your solution)
     const int ref_nb   = 4096;
-    const int query_nb = 4; // 1024
+    const int query_nb = 1024; // 1024
     const int dim      = 64;
-    const int k        = 4; // 16
+    const int k        = 16; // 16
 
     // Parameters 1
     // const int ref_nb   = 16384;
@@ -320,7 +322,7 @@ int main(void) {
     // Test all k-NN functions
     printf("TESTS\n");
     test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &knn_c,            "knn_c",              2);
-    test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &your_solution,  "yourSolution",         1); // 100
+    test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &your_solution,  "yourSolution",         100); // 100
 
     // Deallocate memory 
     free(ref);

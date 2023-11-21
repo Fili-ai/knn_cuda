@@ -1,24 +1,5 @@
 #pragma once
 
-__device__ void bubbleSort(int* indexes, float* distances, int size) {
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size - 1; j++) {
-            if (distances[j] > distances[j + 1]) {
-                // Swap distances
-                float tempDist = distances[j];
-                distances[j] = distances[j + 1];
-                distances[j + 1] = tempDist;
-
-                // Swap indexes accordingly
-                int tempIndex = indexes[j];
-                indexes[j] = indexes[j + 1];
-                indexes[j + 1] = tempIndex;
-            }
-        }
-    }
-}
-
-
 /**
 * Insertion sort given with data coaliscent 
 */
@@ -36,33 +17,38 @@ __device__ void insertion_sort_gpu( const float *dist,
     float * dist_sorted  = (float *) malloc((k+1) * sizeof(float));
     int *   index_sorted = (int *)   malloc((k+1) * sizeof(int));
     
-    
-    for(int i = 0; i < length; ++i){
-        if(i < k){
-            index_sorted[i] = index[query_index + i * query_nb];
-            dist_sorted[i] = dist[query_index + i * query_nb];
-            if(i > 0)
-                bubbleSort(index_sorted, dist_sorted, i+1);
+    // Go through all points
+    for (int i=0; i<length; ++i) {
+
+        // Store current distance and associated index
+        float curr_dist  = dist[query_index + i * query_nb];
+        int  curr_index = index[query_index + i * query_nb];
+
+        // Skip the current value if its index is >= k and if it's higher the k-th slready sorted mallest value
+        if (i >= k && curr_dist >= dist_sorted[k-1]) {
+            continue;
         }
-        
-        else{
-            if(dist[query_index + i * query_nb] < dist_sorted[k-1]){ 
-                
-                // add the more fitting point
-                index_sorted[k] = index[query_index + i * query_nb];
-                dist_sorted[k] = dist[query_index + i * query_nb];
 
-                //sort the new array
-                bubbleSort(index_sorted, dist_sorted, k + 1);                
-            }
-        }       
+        // Shift values (and indexes) higher that the current distance to the right
+        int j = i < k-1 ? i : k-1; 
+        while (j > 0 && dist_sorted[j-1] > curr_dist) {
+            dist_sorted[j]  = dist_sorted[j-1];
+            index_sorted[j] = index_sorted[j-1];
+            --j;
+        }
+
+        // Write the current distance and index at their position
+        dist_sorted[j]  = curr_dist;
+        index_sorted[j] = curr_index; 
     }
-
+        
     for(int i = 0; i < k; ++i){
         knn_index[query_index*k + i] = index_sorted[i];
         knn_dist[query_index*k + i] = dist_sorted[i];
     }
-    
+
+    free(dist_sorted);
+    free(index_sorted); 
 }
 
 

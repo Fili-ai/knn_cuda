@@ -3,18 +3,15 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-
-
 // #include "Solution1.cu"
-// #include "Solution2.cu"
-#include "Solution3.cu"
+#include "Solution2.cu"
 
 /**
 * Error checking function;
 */
 #define gpuErrchk(ans) { gpuAssert((ans), __LINE__); }
-inline void gpuAssert(cudaError_t code, int line, bool abort = false, bool log = true) {
-    if (log && code != cudaSuccess) {
+inline void gpuAssert(cudaError_t code, int line, bool abort = false) {
+    if (LOG_LEVEL < 3 && code != cudaSuccess) {
         fprintf(stderr, "GPUassert: line %d - %s\n", line, cudaGetErrorString(code));
         if (abort)
             exit(code);
@@ -82,11 +79,8 @@ bool your_solution(const float * ref,
 
     // Solution - 1
     //knn_gpu_1_Block_Grid<<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
-    
+     
     // Solution - 2
-    //knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
-    
-    // Solution - 3
     knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
     
     // ---------------------------------- Transfering data on host -------------------------------
@@ -98,14 +92,14 @@ bool your_solution(const float * ref,
 
     // ---------------------------------- Debug section -------------------------------
 
-    /*
-    for(int i = 0; i < query_nb; ++i){
-        std::cout<< i <<" query:" << std::endl; 
-        for (int j = 0; j < k; ++j){
-            std::cout << "\treference index: " << knn_index[i + j*query_nb] << " dist: " << knn_dist[i + j*query_nb] <<std::endl;
-        }
-    } 
-    */
+    if(LOG_LEVEL < 2)
+        for(int i = 0; i < query_nb ; ++i){
+            std::cout<< i <<" query:" << std::endl; 
+            for (int j = 0; j < k; ++j){
+                std::cout << "\treference index: " << knn_index[i + j*query_nb] << " dist: " << knn_dist[i + j*query_nb] <<std::endl;
+            }
+        } 
+    
     
     
     // ---------------------------------- Free memory -------------------------------

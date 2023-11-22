@@ -1,3 +1,8 @@
+#pragma once
+
+/**
+ * Insertion sort to sort ref distances
+*/
 __device__ void insertion_sort_gpu(float *dist_sort, int *index_sort, int length, int k){
     // Initialise the first index
     index_sort[0] = 0;
@@ -30,7 +35,7 @@ __device__ void insertion_sort_gpu(float *dist_sort, int *index_sort, int length
 }
 
 /**
- * Computes the Euclidean distance between a reference point and a query point.
+ * Cosine distance between ref and query
  */
 __device__ float cosine_distance_gpu(const float * ref,
                        int           ref_nb,
@@ -49,6 +54,9 @@ __device__ float cosine_distance_gpu(const float * ref,
     return dot / (sqrt(denom_a) * sqrt(denom_b)) ;
 }
 
+/**
+ * Kernel to solve our problem. It elaborate all queries
+*/
 __global__ void knn_gpu(const float *  ref,
                         int           ref_nb,
                         const float * query,

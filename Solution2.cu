@@ -1,36 +1,67 @@
-__device__ void insertion_sort_gpu(float *dist_sort, int *index_sort, int length, int k){
-    // Initialise the first index
-    index_sort[0] = 0;
+#pragma once
 
-    // Go through all points
-    for (int i=1; i<length; ++i) {
+/**
+* Insertion sort for the queries 
+*/
+__device__ void insertion_sort_gpu( const float *dist, 
+                                    const int *index, 
+                                    const int length, 
+                                    const int k, 
+                                    const int query_nb, 
+                                    const int query_index, 
+                                    int * knn_index,
+                                    float * knn_dist){ 
+
+    // Allocate local array to store all the distances / indexes for a given query point 
+    float * dist_sorted  = (float *) malloc((k+1) * sizeof(float));
+    int *   index_sorted = (int *)   malloc((k+1) * sizeof(int));
+    float curr_dist;
+    int  curr_index;
+    
+    for (int i=0; i<length; ++i) {
 
         // Store current distance and associated index
-        float curr_dist  = dist_sort[i];
-        int   curr_index = i;
-
+        curr_dist  = dist[query_index + i * query_nb];
+        curr_index = index[query_index + i * query_nb];     
+        
         // Skip the current value if its index is >= k and if it's higher the k-th slready sorted mallest value
-        if (i >= k && curr_dist >= dist_sort[k-1]) {
+        if (i >= k && curr_dist >= dist_sorted[k-1]) {
             continue;
         }
 
         // Shift values (and indexes) higher that the current distance to the right
-        //int j = std::min(i, k-1);
-        int j = i < k-1 ? i : k-1; 
-        while (j > 0 && dist_sort[j-1] > curr_dist) {
-            dist_sort[j]  = dist_sort[j-1];
-            index_sort[j] = index_sort[j-1];
+        int j = i < k-1 ? i : k-1;  
+        while (j >= 0 && dist_sorted[j-1] > curr_dist) {
+            dist_sorted[j]  = dist_sorted[j-1];
+            index_sorted[j] = index_sorted[j-1];
             --j;
         }
-
+    
         // Write the current distance and index at their position
-        dist_sort[j]  = curr_dist;
-        index_sort[j] = curr_index; 
+        dist_sorted[j]  = curr_dist;
+        index_sorted[j] = curr_index; 
+            
     }
+    
+
+    for(int i = 0; i < k; ++i){
+        /*
+        // to save the k distances consecutively
+        knn_index[query_index*k + i] = index_sorted[i];
+        knn_dist[query_index*k + i] = dist_sorted[i];
+        */
+        // to save the k distances at distance query_nb
+        knn_index[query_index + i * query_nb] = index_sorted[i];
+        knn_dist[query_index + i * query_nb] = dist_sorted[i];
+    }
+
+    free(dist_sorted);
+    free(index_sorted); 
 }
 
+
 /**
- * Computes the Euclidean distance between a reference point and a query point.
+ * Cosine distance
  */
 __device__ float cosine_distance_gpu(const float * ref,
                        int           ref_nb,
@@ -49,6 +80,9 @@ __device__ float cosine_distance_gpu(const float * ref,
     return dot / (sqrt(denom_a) * sqrt(denom_b)) ;
 }
 
+/**
+ * Kernel to solve the problem. It works in parallel, each kernel work on a subset of all queries
+*/
 __global__ void knn_gpu(const float *  ref,
                         int           ref_nb,
                         const float * query,
@@ -56,33 +90,21 @@ __global__ void knn_gpu(const float *  ref,
                         int           dim,
                         int           k,
                         float *       knn_dist,
-                        int *         knn_index){
-
-    // Allocate local array to store all the distances / indexes for a given query point 
-    float * dist  = (float *) malloc(ref_nb * sizeof(float));
-    int *   index = (int *)   malloc(ref_nb * sizeof(int));
+                        int *         knn_index,
+                        int *         index, 
+                        float *       dist){
 
     // Process one query point at the time
-    for (int query_index = threadIdx.x; query_index < query_nb; query_index += blockDim.x) {
+    for (int query_index = blockIdx.x * blockDim.x + threadIdx.x; query_index < query_nb; query_index += blockDim.x * gridDim.x) {
+        // Compute query distance from every reference
+        for(int reference = 0; reference < ref_nb; reference++){
+            index[query_index + reference*query_nb] =  reference;
 
-        
-        // Compute all distances / indexes
-        for (int j=0; j<ref_nb; ++j) {
-            dist[j]  = cosine_distance_gpu(ref, ref_nb, query, query_nb, dim, j, query_index);
-            index[j] = j;
-        }
-     
-        // Sort distances / indexes
-        insertion_sort_gpu(dist, index, ref_nb, k);
+            dist[query_index + reference*query_nb] = cosine_distance_gpu(ref, ref_nb, query, query_nb, dim, reference, query_index);
+        } 
 
-        // Copy k smallest distances and their associated index
-        for (int j = 0; j < k; ++j) {
-            knn_dist[j * query_nb + query_index]  = dist[j];
-            knn_index[j * query_nb + query_index] = index[j];
-        }
-        
+        //data coalescent insertion sort
+        insertion_sort_gpu(dist, index, ref_nb, k, query_nb, query_index, knn_index, knn_dist);
+                
     }
-
-    free(index);
-    free(dist);
 }

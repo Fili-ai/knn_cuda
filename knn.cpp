@@ -7,7 +7,17 @@
 #include <time.h>
 
 #include <iostream>
+
+#define LOG_LEVEL 3
+/**
+ * LOG_LEVEL: 
+ * 2 - only error of cuda commands
+ * 1 - + display results of our cuda kernel
+ * 0 - + display results of CPU reference and CUDA
+*/
+
 #include "yourSolution.h"
+
 
 
 /**
@@ -211,7 +221,7 @@ bool test(const float * ref,
     int nb_correct_indexes    = 0;
     for (int i=0; i<query_nb*k; ++i) {
 
-        if(name != "knn_c" && false){          
+        if(name != "knn_c" && LOG_LEVEL < 1){          
             if(i % k == 0)
                 std::cout << "\nQuery: " << i/k<< std::endl;
             std::cout << "\n CPU: index " << gt_knn_index[i] << " \tdistance " << gt_knn_dist[i] << std::endl;

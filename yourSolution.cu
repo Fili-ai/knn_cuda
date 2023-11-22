@@ -3,6 +3,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#include "variables.h"
+
 // #include "Solution1.cu"
 #include "Solution2.cu"
 

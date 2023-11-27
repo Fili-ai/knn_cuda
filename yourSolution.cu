@@ -50,25 +50,25 @@ bool your_solution(const float * ref,
     // ---------------------------------- Creating data location on gpu -------------------------------
     // Location for all reference data
     float * ref_gpu;
-    gpuErrchk(cudaMallocManaged(&ref_gpu, ref_nb*dim*sizeof(float)));
+    gpuErrchk(cudaMalloc(&ref_gpu, ref_nb*dim*sizeof(float)));
 
     // Location for all query data
     float * query_gpu;
-    gpuErrchk(cudaMallocManaged(&query_gpu, query_nb*dim*sizeof(float)));
+    gpuErrchk(cudaMalloc(&query_gpu, query_nb*dim*sizeof(float)));
 
     // Location for the k-nearest distances
     float * knn_dist_gpu;
-    gpuErrchk(cudaMallocManaged(&knn_dist_gpu, query_nb*k*sizeof(float)));
+    gpuErrchk(cudaMalloc(&knn_dist_gpu, query_nb*k*sizeof(float)));
 
     // Location for the k-nearest index
     int * knn_index_gpu;
-    gpuErrchk(cudaMallocManaged(&knn_index_gpu, query_nb*k*sizeof(int)));
+    gpuErrchk(cudaMalloc(&knn_index_gpu, query_nb*k*sizeof(int)));
 
     // Location for index and dist 
     int * index_gpu;
-    gpuErrchk(cudaMallocManaged(&index_gpu, query_nb*ref_nb*sizeof(int)));
+    gpuErrchk(cudaMalloc(&index_gpu, query_nb*ref_nb*sizeof(int)));
     float * dist_gpu;
-    gpuErrchk(cudaMallocManaged(&dist_gpu, query_nb*ref_nb*sizeof(float)));
+    gpuErrchk(cudaMalloc(&dist_gpu, query_nb*ref_nb*sizeof(float)));
 
     // ---------------------------------- Transfering data on device -------------------------------
 
@@ -101,8 +101,6 @@ bool your_solution(const float * ref,
                 std::cout << "\treference index: " << knn_index[i + j*query_nb] << " dist: " << knn_dist[i + j*query_nb] <<std::endl;
             }
         } 
-    
-    
     
     // ---------------------------------- Free memory -------------------------------
 

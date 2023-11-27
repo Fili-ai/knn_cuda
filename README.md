@@ -32,4 +32,8 @@ So we allocate in the global memory all the space to contain all the index's arr
 
 ### Solution 3
 
-Our third attempt is focus on the parallelization on the reference and not queries.  
+Our third attempt is focus on the parallelization on the reference and not queries.
+
+### Solution 4
+
+Use stream to adjust the level of parallelization according to the task to run.

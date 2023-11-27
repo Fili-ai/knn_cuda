@@ -1,4 +1,4 @@
-#define LOG_LEVEL 1
+#define LOG_LEVEL 3
 /**
  * LOG_LEVEL: 
  * 2 - only error of cuda commands

@@ -12,8 +12,6 @@
 
 #include "yourSolution.h"
 
-
-
 /**
  * Initializes randomly the reference and query points.
  */

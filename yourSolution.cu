@@ -45,10 +45,10 @@ bool your_solution(const float * ref,
 
     // ---------------------------------- Variables' declaration ------------------------------- 
 
-    dim3 block_size(1024, 1, 1);
-    dim3 grid((query_nb + block_size.x - 1) / block_size.x, 1, 1);
+    //dim3 block_size(1024, 1, 1);
+    //dim3 grid((query_nb + block_size.x - 1) / block_size.x, 1, 1);
 
-    /*
+    
     dim3 block_size_cosine_distance(1024, 1, 1);
     dim3 grid_cosine_distance((dim*ref_nb*query_nb + block_size_cosine_distance.x - 1) / block_size_cosine_distance.x, 1, 1);
 
@@ -57,7 +57,7 @@ bool your_solution(const float * ref,
     
     dim3 block_size_insertion_sort_gpu(1024, 1, 1);
     dim3 grid_insertion_sort_gpu((query_nb + block_size_insertion_sort_gpu.x - 1) / block_size_insertion_sort_gpu.x, 1, 1);
-    */
+    
 
     // ---------------------------------- Creating data location on gpu -------------------------------
     // Location for all reference data
@@ -78,19 +78,19 @@ bool your_solution(const float * ref,
 
     // Location for index and dist 
     int * index_gpu;
-    gpuErrchk(cudaMalloc(&index_gpu, query_nb*ref_nb*sizeof(int)));
+    gpuErrchk(cudaMallocManaged(&index_gpu, query_nb*ref_nb*sizeof(int)));
     float * dist_gpu;
-    gpuErrchk(cudaMalloc(&dist_gpu, query_nb*ref_nb*sizeof(float)));
+    gpuErrchk(cudaMallocManaged(&dist_gpu, query_nb*ref_nb*sizeof(float)));
 
-    /*
+    
     // Location of dots, denom_a, denom_b --- 4 solution
     double * dots;
-    gpuErrchk(cudaMalloc(&dots, query_nb*ref_nb*dim*sizeof(float)));
+    gpuErrchk(cudaMallocManaged(&dots, query_nb*ref_nb*dim*sizeof(float)));
     double * denom_b;
-    gpuErrchk(cudaMalloc(&denom_b, query_nb*ref_nb*dim*sizeof(float)));
+    gpuErrchk(cudaMallocManaged(&denom_b, query_nb*ref_nb*dim*sizeof(float)));
     double * denom_a;
-    gpuErrchk(cudaMalloc(&denom_a, query_nb*ref_nb*dim*sizeof(float)));
-    */
+    gpuErrchk(cudaMallocManaged(&denom_a, query_nb*ref_nb*dim*sizeof(float)));
+    
 
     // ---------------------------------- Transfering data on device -------------------------------
 
@@ -105,14 +105,14 @@ bool your_solution(const float * ref,
     //knn_gpu_1_Block_Grid<<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
      
     // Solution - 2
-    knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
+    //knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
 
-    /*
+    
     // Solution - 4
-    knn_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dots, denom_a, denom_b );
-    dots_to_dist<<<grid_dots_to_dist, block_size_dots_to_dist>>>(dots, denom_a, denom_b, query_nb, dim, dist, index);
-    insertion_sort_gpu(dist, index, ref_nb, k, query_nb, knn_index, knn_dist);
-    */
+    cosine_distance<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dots, denom_a, denom_b );
+    dots_to_dist<<<grid_dots_to_dist, block_size_dots_to_dist>>>(dots, denom_a, denom_b, query_nb, dim, dist_gpu, index_gpu, ref_nb);
+    // insertion_sort_gpu<<<grid_insertion_sort_gpu, block_size_insertion_sort_gpu>>>(dist_gpu, index_gpu, ref_nb, k, query_nb, knn_index, knn_dist, dim);
+    
 
     // ---------------------------------- Transfering data on host -------------------------------
 
@@ -123,13 +123,27 @@ bool your_solution(const float * ref,
 
     // ---------------------------------- Debug section -------------------------------
 
-    if(LOG_LEVEL < 2)
-        for(int i = 0; i < query_nb ; ++i){
-            std::cout<< i <<" query:" << std::endl; 
-            for (int j = 0; j < k; ++j){
-                std::cout << "\treference index: " << knn_index[i + j*query_nb] << " dist: " << knn_dist[i + j*query_nb] <<std::endl;
-            }
+    
+    if(LOG_LEVEL < 2){
+     
+        //  check if dots are correct fill or not 
+        for(int i = 0; i < query_nb*ref_nb*dim ; ++i){
+            if(i % (ref_nb*dim) == 0)
+                std::cout<<"\n"<< i/(ref_nb*dim) <<" query:" << std::endl; 
+            if(i % (dim) == 0)
+                std::cout<< "\t"<<i/dim -  i/(ref_nb*dim) * ref_nb <<" reference:" << std::endl; 
+            std::cout << "\t\t dim: " << i % dim << " dots[i]: " << dots[i] << " denom_a[i]: " << denom_b[i] << " denom_b[i]: " << denom_b[i]  << std::endl;
         } 
+    
+    
+        for(int i = 0; i < query_nb ; ++i){
+            std::cout<< std::endl << i <<" query:" << std::endl; 
+            for (int j = 0; j < ref_nb; ++j){
+                std::cout << "\treference index: " << index_gpu[i + j*query_nb] << " dist: " << dist_gpu[i + j*query_nb] <<std::endl;
+            }
+        }
+    }
+
     
     // ---------------------------------- Free memory -------------------------------
 

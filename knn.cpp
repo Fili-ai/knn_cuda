@@ -256,10 +256,10 @@ bool test(const float * ref,
  */
 int main(void) {
     // Parameters 0 (to develop your solution)
-    const int ref_nb   = 4096;
-    const int query_nb = 1024;
-    const int dim      = 64;
-    const int k        = 16;
+    const int ref_nb   = 4;
+    const int query_nb = 2;
+    const int dim      = 4;
+    const int k        = 4;
 
     // Parameters 1
     // const int ref_nb   = 16384;
@@ -323,8 +323,8 @@ int main(void) {
 
     // Test all k-NN functions
     printf("TESTS\n");
-    test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &knn_c,            "knn_c",              2);
-    test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &your_solution,  "yourSolution",         100); 
+    //test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &knn_c,            "knn_c",              2);
+    test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &your_solution,  "yourSolution",         1); 
 
     // Deallocate memory 
     free(ref);

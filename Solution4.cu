@@ -7,18 +7,19 @@
 
 __global__ void insertion_sort_gpu( const float *dist, 
                                     const int *index, 
-                                    const int length, 
+                                    const int ref_nb, 
                                     const int k, 
                                     const int query_nb,  
                                     int * knn_index,
-                                    float * knn_dist){ 
+                                    float * knn_dist, 
+                                    int dim){ 
     
     int id_x = threadIdx.x + blockIdx.x * blockDim.x;
     int id_y = threadIdx.y + blockIdx.y * blockDim.y;
     int unique_id = id_x + id_y * gridDim.x * blockDim.x;
 
-    int ref_index = unique_id / ref_nb;
     int query_index = unique_id / (ref_nb * dim);
+    // int ref_index = unique_id / dim - query_index * ref_nb;
 
 
     // Allocate local array to store all the distances / indexes for a given query point 
@@ -27,7 +28,7 @@ __global__ void insertion_sort_gpu( const float *dist,
     float curr_dist;
     int  curr_index;
     
-    for (int i=0; i<length; ++i) {
+    for (int i=0; i<ref_nb; ++i) {
 
         // Store current distance and associated index
         curr_dist  = dist[query_index + i * query_nb];
@@ -68,13 +69,14 @@ __global__ void insertion_sort_gpu( const float *dist,
     free(index_sorted); 
 }
 
-__global__ void dots_to_dist(double *      dots, 
-                         double *      denom_a,
-                         double *      denom_b,
-                         int           query_nb,
-                         int           dim,
-                         double *      dist,
-                         int *         index){
+__global__ void dots_to_dist(const double *      dots, 
+                             const double *      denom_a,
+                             const double *      denom_b,
+                             const int           query_nb,
+                             const int           dim,
+                             float *             dist,
+                             int *               index, 
+                             const int           ref_nb){
     /**
      * @brief Each thread sum all the dim of the product between a reference and a query
     */
@@ -84,31 +86,32 @@ __global__ void dots_to_dist(double *      dots,
     int id_y = threadIdx.y + blockIdx.y * blockDim.y;
     int unique_id = id_x + id_y * gridDim.x * blockDim.x;
 
-    int ref_index = unique_id / ref_nb;
     int query_index = unique_id / (ref_nb * dim);
+    int ref_index = unique_id / dim - query_index * ref_nb;
 
-    double dot = 0;
-    double a = 0;
-    double b = 0;
-    for(int i = 0; i < dim, i++){
-        dot += dots[unique_id * dim + i];
-        a += denom_a[unique_id * dim + i];
-        b += denom_b[unique_id * dim + i];
+    // double dot = 0;
+    // double a = 0;
+    // double b = 0;
+
+    for(int i = 0; i < dim; i++){
+        // dot += dots[unique_id + i];
+        // a += denom_a[unique_id + i];
+        // b += denom_b[unique_id + i];
     }
 
-    dist[query_index + ref_index*query_nb] = dot/(sqrt(a) * sqrt(b));
+    dist[query_index + ref_index*query_nb] = ref_index;
     index[query_index + ref_index*query_nb] = ref_index;
 
 }
 
-__global__ void knn_gpu(const float *  ref,
-                        int           ref_nb,
-                        const float * query,
-                        int           query_nb,
-                        int           dim, 
-                        double *      dots, 
-                        double *      denom_a,
-                        double *      denom_b ){
+__global__ void cosine_distance(const float *  ref,
+                                const int           ref_nb,
+                                const float * query,
+                                const int           query_nb,
+                                const int           dim, 
+                                double *      dots, 
+                                double *      denom_a,
+                                double *      denom_b ){
     
     /**
      * work only for 1D block and 1D/2D grid 
@@ -118,13 +121,15 @@ __global__ void knn_gpu(const float *  ref,
     int unique_id = id_x + id_y * gridDim.x * blockDim.x;
 
     if(unique_id < dim * query_nb * ref_nb){
-        int d = unique_id % ref_nb; // dimension
-        int ref_index = unique_id / ref_nb;
         int query_index = unique_id / (ref_nb * dim);
+        int ref_index = unique_id / dim - query_index * ref_nb;
+        int d = unique_id % dim; // dimension
 
+        // dots[unique_id] = ref_index;
         dots[unique_id] = ref[d * ref_nb + ref_index] * query[d * query_nb + query_index];
+
+        // denom are the same
         denom_a[unique_id] = ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index] ;
         denom_b[unique_id] = query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
     }
-
 }

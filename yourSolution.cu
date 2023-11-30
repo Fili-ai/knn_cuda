@@ -6,8 +6,8 @@
 #include "variables.h"
 
 //#include "Solution1.cu"
-#include "Solution2.cu"
-//#include "Solution4.cu"
+//#include "Solution2.cu"
+#include "Solution4.cu"
 
 /**
 * Error checking function;
@@ -43,14 +43,6 @@ bool your_solution(const float * ref,
     * @input knn_index array with the solution of the classification
     */
 
-    // ---------------------------------- Variables' declaration ------------------------------- 
-
-    dim3 block_size(1024, 1, 1);
-    dim3 grid((query_nb + block_size.x - 1) / block_size.x, 1, 1);
-    
-    dim3 block_size_cosine_distance(1024, 1, 1);
-    dim3 grid_cosine_distance((ref_nb*query_nb + block_size.x - 1) / block_size.x, 1, 1);
-
     // ---------------------------------- Creating data location on gpu -------------------------------
     // Location for all reference data
     float * ref_gpu;
@@ -80,7 +72,7 @@ bool your_solution(const float * ref,
     gpuErrchk(cudaMemcpy(ref_gpu, ref, ref_nb*dim*sizeof(float), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(query_gpu, query, query_nb*dim*sizeof(float), cudaMemcpyHostToDevice));
 
-    gpuErrchk(cudaDeviceSynchronize());
+    //gpuErrchk(cudaDeviceSynchronize());
 
     // ---------------------------------- Kernel launching -------------------------------
 
@@ -88,20 +80,25 @@ bool your_solution(const float * ref,
     //knn_gpu_1_Block_Grid<<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
      
     // Solution - 2
-    knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
-
-    
+    //dim3 block_size(1024, 1, 1);
+    //dim3 grid((query_nb + block_size.x - 1) / block_size.x, 1, 1);
+    //
+    //knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
+ 
     // Solution - 4
-    // cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dist_gpu, index_gpu);
-    // insertion_sort_gpu<<<grid, block_size>>>(ref_nb, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
+    dim3 block_size(1024, 1, 1);
+    dim3 grid((query_nb + block_size.x - 1) / block_size.x, 1, 1);
+    dim3 block_size_cosine_distance(1024, 1, 1);
+    dim3 grid_cosine_distance((ref_nb*query_nb + block_size.x - 1) / block_size.x, 1, 1);
 
-
+    cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dist_gpu, index_gpu);
+    insertion_sort_gpu<<<grid, block_size>>>(ref_nb, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
+    
     // ---------------------------------- Transfering data on host -------------------------------
-
-    gpuErrchk(cudaDeviceSynchronize());
 
     gpuErrchk(cudaMemcpy(knn_dist, knn_dist_gpu, query_nb*k*sizeof(float), cudaMemcpyDeviceToHost));
     gpuErrchk(cudaMemcpy(knn_index, knn_index_gpu, query_nb*k*sizeof(int), cudaMemcpyDeviceToHost));
+    
 
     // ---------------------------------- Debug section -------------------------------
 

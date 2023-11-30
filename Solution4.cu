@@ -1,75 +1,15 @@
 #pragma once
 
 /**
-* Insertion sort for the queries 
-*/
-__device__ void insertion_sort_gpu( const float *dist, 
-                                    const int *index, 
-                                    const int length, 
-                                    const int k, 
-                                    const int query_nb, 
-                                    const int query_index, 
-                                    int * knn_index,
-                                    float * knn_dist){ 
-
-    // Allocate local array to store all the distances / indexes for a given query point 
-    float * dist_sorted  = (float *) malloc((k+1) * sizeof(float));
-    int *   index_sorted = (int *)   malloc((k+1) * sizeof(int));
-    float curr_dist;
-    int  curr_index;
-    
-    for (int i=0; i<length; ++i) {
-
-        // Store current distance and associated index
-        curr_dist  = dist[query_index + i * query_nb];
-        curr_index = index[query_index + i * query_nb];     
-        
-        // Skip the current value if its index is >= k and if it's higher the k-th slready sorted mallest value
-        if (i >= k && curr_dist >= dist_sorted[k-1]) {
-            continue;
-        }
-
-        // Shift values (and indexes) higher that the current distance to the right
-        int j = i < k-1 ? i : k-1;  
-        while (j >= 0 && dist_sorted[j-1] > curr_dist) {
-            dist_sorted[j]  = dist_sorted[j-1];
-            index_sorted[j] = index_sorted[j-1];
-            --j;
-        }
-    
-        // Write the current distance and index at their position
-        dist_sorted[j]  = curr_dist;
-        index_sorted[j] = curr_index; 
-            
-    }
-    
-
-    for(int i = 0; i < k; ++i){
-        /*
-        // to save the k distances consecutively
-        knn_index[query_index*k + i] = index_sorted[i];
-        knn_dist[query_index*k + i] = dist_sorted[i];
-        */
-        // to save the k distances at distance query_nb
-        knn_index[query_index + i * query_nb] = index_sorted[i];
-        knn_dist[query_index + i * query_nb] = dist_sorted[i];
-    }
-
-    free(dist_sorted);
-    free(index_sorted); 
-}
-
-
-/**
  * Cosine distance
  */
 __global__ void cosine_distance_gpu(const float * ref,
-                       int           ref_nb,
-                       const float * query,
-                       int           query_nb,
-                       int           dim,
-                       float *       dist,
-                       int *         index) {
+                                    const int     ref_nb,
+                                    const float * query,
+                                    const int     query_nb,
+                                    const int     dim,
+                                    float *       dist,
+                                    int *         index) {
     
 
     int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -94,16 +34,16 @@ __global__ void cosine_distance_gpu(const float * ref,
 }
 
 /**
- * Kernel to solve the problem. It works in parallel, each kernel work on a subset of all queries
+ * Insertion sort
 */
-__global__ void insertion_sort_gpu( int           ref_nb,
-                                    int           query_nb,
-                                    int           dim,
-                                    int           k,
+__global__ void insertion_sort_gpu( const int     ref_nb,
+                                    const int     query_nb,
+                                    const int     dim,
+                                    const int     k,
                                     float *       knn_dist,
                                     int *         knn_index,
-                                    int *         index, 
-                                    float *       dist){
+                                    const int *   index, 
+                                    const float * dist){
 
     int query_index = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -141,11 +81,6 @@ __global__ void insertion_sort_gpu( int           ref_nb,
         
 
         for(int i = 0; i < k; ++i){
-            /*
-            // to save the k distances consecutively
-            knn_index[query_index*k + i] = index_sorted[i];
-            knn_dist[query_index*k + i] = dist_sorted[i];
-            */
             // to save the k distances at distance query_nb
             knn_index[query_index + i * query_nb] = index_sorted[i];
             knn_dist[query_index + i * query_nb] = dist_sorted[i];

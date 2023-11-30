@@ -256,17 +256,17 @@ bool test(const float * ref,
  */
 int main(void) {
     // Parameters 0 (to develop your solution)
-    // const int ref_nb   = 4096;
-    // const int query_nb = 1024;
-    // const int dim      = 64;
-    // const int k        = 16;
+    const int ref_nb   = 4096;
+    const int query_nb = 1024;
+    const int dim      = 64;
+    const int k        = 16;
     
 
     // Parameters 1
-    const int ref_nb   = 16384;
-    const int query_nb = 4096;
-    const int dim      = 128;
-    const int k        = 100;
+    //const int ref_nb   = 16384;
+    //const int query_nb = 4096;
+    //const int dim      = 128;
+    //const int k        = 100;
 
     // Parameters 2
     // const int ref_nb   = 163840;

@@ -257,7 +257,7 @@ bool test(const float * ref,
 int main(void) {
     // Parameters 0 (to develop your solution)
     const int ref_nb   = 4;
-    const int query_nb = 2;
+    const int query_nb = 4;
     const int dim      = 4;
     const int k        = 4;
 

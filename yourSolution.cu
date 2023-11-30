@@ -110,8 +110,8 @@ bool your_solution(const float * ref,
     
     // Solution - 4
     cosine_distance<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dots, denom_a, denom_b );
-    dots_to_dist<<<grid_dots_to_dist, block_size_dots_to_dist>>>(dots, denom_a, denom_b, query_nb, dim, dist_gpu, index_gpu, ref_nb);
-    // insertion_sort_gpu<<<grid_insertion_sort_gpu, block_size_insertion_sort_gpu>>>(dist_gpu, index_gpu, ref_nb, k, query_nb, knn_index, knn_dist, dim);
+    dots_to_dist<<<1, 1>>>(dots, denom_a, denom_b, query_nb, dim, dist_gpu, index_gpu, ref_nb);
+    //insertion_sort_gpu<<<grid_insertion_sort_gpu, block_size_insertion_sort_gpu>>>(dist_gpu, index_gpu, ref_nb, k, query_nb, knn_index, knn_dist, dim);
     
 
     // ---------------------------------- Transfering data on host -------------------------------
@@ -126,14 +126,16 @@ bool your_solution(const float * ref,
     
     if(LOG_LEVEL < 2){
      
-        //  check if dots are correct fill or not 
+        // check if dots are correct fill or not 
+        /*
         for(int i = 0; i < query_nb*ref_nb*dim ; ++i){
             if(i % (ref_nb*dim) == 0)
                 std::cout<<"\n"<< i/(ref_nb*dim) <<" query:" << std::endl; 
             if(i % (dim) == 0)
                 std::cout<< "\t"<<i/dim -  i/(ref_nb*dim) * ref_nb <<" reference:" << std::endl; 
-            std::cout << "\t\t dim: " << i % dim << " dots[i]: " << dots[i] << " denom_a[i]: " << denom_b[i] << " denom_b[i]: " << denom_b[i]  << std::endl;
+            std::cout << "\t\t dim: " << i % dim << " dots[i]: " << dots[i] << " denom_a[i]: " << denom_a[i] << " denom_b[i]: " << denom_b[i]  << std::endl;
         } 
+        */
     
     
         for(int i = 0; i < query_nb ; ++i){

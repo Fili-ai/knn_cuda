@@ -5,6 +5,7 @@
 
 #include "variables.h"
 
+
 __global__ void insertion_sort_gpu( const float *dist, 
                                     const int *index, 
                                     const int ref_nb, 
@@ -19,7 +20,6 @@ __global__ void insertion_sort_gpu( const float *dist,
     int unique_id = id_x + id_y * gridDim.x * blockDim.x;
 
     int query_index = unique_id / (ref_nb * dim);
-    // int ref_index = unique_id / dim - query_index * ref_nb;
 
 
     // Allocate local array to store all the distances / indexes for a given query point 
@@ -49,8 +49,7 @@ __global__ void insertion_sort_gpu( const float *dist,
     
         // Write the current distance and index at their position
         dist_sorted[j]  = curr_dist;
-        index_sorted[j] = curr_index; 
-            
+        index_sorted[j] = curr_index;            
     }
     
 
@@ -59,15 +58,19 @@ __global__ void insertion_sort_gpu( const float *dist,
         // to save the k distances consecutively
         knn_index[query_index*k + i] = index_sorted[i];
         knn_dist[query_index*k + i] = dist_sorted[i];
-        */
+        */ 
+
         // to save the k distances at distance query_nb
-        knn_index[query_index + i * query_nb] = index_sorted[i];
-        knn_dist[query_index + i * query_nb] = dist_sorted[i];
+        // knn_index[query_index + i * query_nb] = index_sorted[i];
+        // knn_dist[query_index + i * query_nb] = dist_sorted[i];
+        knn_index[query_index + i * query_nb] = 0;
+        knn_dist[query_index + i * query_nb] = 0;
     }
 
     free(dist_sorted);
     free(index_sorted); 
 }
+
 
 __global__ void dots_to_dist(const double *      dots, 
                              const double *      denom_a,
@@ -81,26 +84,31 @@ __global__ void dots_to_dist(const double *      dots,
      * @brief Each thread sum all the dim of the product between a reference and a query
     */
 
-
+    /*
     int id_x = threadIdx.x + blockIdx.x * blockDim.x;
     int id_y = threadIdx.y + blockIdx.y * blockDim.y;
     int unique_id = id_x + id_y * gridDim.x * blockDim.x;
 
     int query_index = unique_id / (ref_nb * dim);
     int ref_index = unique_id / dim - query_index * ref_nb;
-
-    // double dot = 0;
-    // double a = 0;
-    // double b = 0;
-
-    for(int i = 0; i < dim; i++){
-        // dot += dots[unique_id + i];
-        // a += denom_a[unique_id + i];
-        // b += denom_b[unique_id + i];
+    */
+    double dot = 0;
+    double a = 0;
+    double b = 0;
+    for(int query_it = 0; query_it < query_nb; ++query_it){
+        for(int ref_it = 0; ref_it < ref_nb; ++ref_it){
+            dot = 0;
+            a = 0;
+            b = 0;
+            for(int i = 0; i < dim; i++){
+                dot += dots[query_it*ref_nb*dim + ref_it*dim + i];
+                a += denom_a[query_it*ref_nb*dim + ref_it*dim + i];
+                b += denom_b[query_it*ref_nb*dim + ref_it*dim + i];
+            }
+            dist[query_it + ref_it*query_nb] = dot / (sqrt(a) * sqrt(b));
+            index[query_it + ref_it*query_nb] = ref_it;
+        }
     }
-
-    dist[query_index + ref_index*query_nb] = ref_index;
-    index[query_index + ref_index*query_nb] = ref_index;
 
 }
 
@@ -125,10 +133,10 @@ __global__ void cosine_distance(const float *  ref,
         int ref_index = unique_id / dim - query_index * ref_nb;
         int d = unique_id % dim; // dimension
 
-        // dots[unique_id] = ref_index;
+        //dots[unique_id] = d * ref_nb + ref_index;
         dots[unique_id] = ref[d * ref_nb + ref_index] * query[d * query_nb + query_index];
 
-        // denom are the same
+        //denom_a[unique_id] = d * query_nb + query_index;
         denom_a[unique_id] = ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index] ;
         denom_b[unique_id] = query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
     }

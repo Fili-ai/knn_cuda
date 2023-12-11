@@ -32,8 +32,14 @@ So we allocate in the global memory all the space to contain all the index's arr
 
 ### Solution 3
 
-Our third attempt is focus on the parallelization on the reference and not queries.
+Third attempt is focus on the parallelization on the reference and not queries.
 
 ### Solution 4
 
-Use stream to adjust the level of parallelization according to the task to run.
+Fourth attempt is focus on a mix between Solution 3 and 4. We use _query_nb*ref_nb_ threads to compute cosine distance, in this way each thread compute a single query-ref distance. After this work we call _query_nb_ threads to execute insertion sort, one thread for each query.
+
+### Solution 5
+
+[__Target__] Fifth attempt is to achieve the maximum level of parallelization by increasing the number of threads so each ones calculate a single dimension of a query-ref distance. After these calculations, thanks to reduction we can sum all dimensions for each query-ref distance.
+
+[__Idea to try__] use 3D matrices (query x reference x dim) and unlock 3D blocks potential.

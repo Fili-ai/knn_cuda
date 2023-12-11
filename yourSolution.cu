@@ -8,6 +8,7 @@
 //#include "Solution1.cu"
 //#include "Solution2.cu"
 #include "Solution4.cu"
+//#include "Solution5.cu"
 
 /**
 * Error checking function;
@@ -86,46 +87,47 @@ bool your_solution(const float * ref,
     //knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
  
     // Solution - 4
-    //dim3 block_size(256, 1, 1);
-    //dim3 grid((query_nb + block_size.x - 1) / block_size.x, 1, 1);
-    //dim3 block_size_cosine_distance(256, 1, 1);
-    //dim3 grid_cosine_distance((ref_nb*query_nb + block_size.x - 1) / block_size.x, 1, 1);
-    //cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dist_gpu, index_gpu);
-    //insertion_sort_gpu<<<grid, block_size>>>(ref_nb, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
+    dim3 block_size(256, 1, 1);
+    dim3 grid((query_nb + block_size.x - 1) / block_size.x, 1, 1);
+    dim3 block_size_cosine_distance(256, 1, 1);
+    dim3 grid_cosine_distance((ref_nb*query_nb + block_size.x - 1) / block_size.x, 1, 1);
+    cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dist_gpu, index_gpu);
+    insertion_sort_gpu<<<grid, block_size>>>(ref_nb, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
     
     // Solution - 5
     // memory management 
-    float * dots;
-    gpuErrchk(cudaMalloc(&dots, query_nb*ref_nb*dim*sizeof(float)));
-    float * denom_a;
-    gpuErrchk(cudaMalloc(&denom_a, query_nb*ref_nb*dim*sizeof(float)));
-    float * denom_b;
-    gpuErrchk(cudaMalloc(&denom_b, query_nb*ref_nb*dim*sizeof(float)));
-    float * sum_dots;
-    gpuErrchk(cudaMalloc(&sum_dots, query_nb*ref_nb*sizeof(float)));
-    float * sum_denom_a;
-    gpuErrchk(cudaMalloc(&sum_denom_a, query_nb*ref_nb*sizeof(float)));
-    float * sum_denom_b;
-    gpuErrchk(cudaMalloc(&sum_denom_b, query_nb*ref_nb*sizeof(float)));
+    //float * dots;
+    //gpuErrchk(cudaMalloc(&dots, query_nb*ref_nb*dim*sizeof(float)));
+    //float * denom_a;
+    //gpuErrchk(cudaMalloc(&denom_a, query_nb*ref_nb*dim*sizeof(float)));
+    //float * denom_b;
+    //gpuErrchk(cudaMalloc(&denom_b, query_nb*ref_nb*dim*sizeof(float)));
+    //float * sum_dots;
+    //gpuErrchk(cudaMalloc(&sum_dots, query_nb*ref_nb*sizeof(float)));
+    //float * sum_denom_a;
+    //gpuErrchk(cudaMalloc(&sum_denom_a, query_nb*ref_nb*sizeof(float)));
+    //float * sum_denom_b;
+    //gpuErrchk(cudaMalloc(&sum_denom_b, query_nb*ref_nb*sizeof(float)));
 
-    // block and grid dimension 
-    dim3 block_size(1024, 1, 1);
-    dim3 grid((query_nb + block_size.x - 1) / block_size.x, 1, 1);
+    //// block and grid dimension 
+    //dim3 block_size(1024, 1, 1);
+    //dim3 grid((query_nb + block_size.x - 1) / block_size.x, 1, 1);
 
-    dim3 block_size_fill(1024, 1, 1);
-    dim3 grid_fill((ref_nb*query_nb*dim + block_size.x - 1) / block_size.x, 1, 1);
+    //dim3 block_size_fill(1024, 1, 1);
+    //dim3 grid_fill((ref_nb*query_nb*dim + block_size.x - 1) / block_size.x, 1, 1);
 
-    dim3 block_size_reduction(1024, 1, 1);
-    dim3 grid_reduction((ref_nb*query_nb + block_size.x - 1) / block_size.x, 1, 1);
+    //dim3 block_size_reduction(1024, 1, 1);
+    //dim3 grid_reduction((ref_nb*query_nb + block_size.x - 1) / block_size.x, 1, 1);
+    //
+    //dim3 block_size_cosine_distance(1024, 1, 1);
+    //dim3 grid_cosine_distance((ref_nb*query_nb + block_size.x - 1) / block_size.x, 1, 1);
+
+    //// kernel launching
+    //fill_gpu<<<grid_fill, block_size_fill>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dots, denom_a, denom_b);
+    //reduceDimension<<<numBlocks, blockSize, 3 * blockSize * sizeof(float)>>>(dots, denom_a, denom_b, ref_nb, query_nb, dim, sum_dots, sum_denom_a, sum_denom_b);
+    //cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dist_gpu, index_gpu, sum_dots, sum_denom_a, sum_denom_b);
+    //insertion_sort_gpu<<<grid, block_size>>>(ref_nb, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
     
-    dim3 block_size_cosine_distance(1024, 1, 1);
-    dim3 grid_cosine_distance((ref_nb*query_nb + block_size.x - 1) / block_size.x, 1, 1);
-
-    // kernel launching
-    fill_gpu<<<grid_fill, block_size_fill>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dots, denom_a, denom_b);
-    reduceDimension<<<numBlocks, blockSize, 3 * blockSize * sizeof(float)>>>(dots, denom_a, denom_b, ref_nb, query_nb, dim, sum_dots, sum_denom_a, sum_denom_b);
-    cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dist_gpu, index_gpu, sum_dots, sum_denom_a, sum_denom_b);
-    insertion_sort_gpu<<<grid, block_size>>>(ref_nb, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
     // ---------------------------------- Transfering data on host -------------------------------
 
     gpuErrchk(cudaMemcpy(knn_dist, knn_dist_gpu, query_nb*k*sizeof(float), cudaMemcpyDeviceToHost));

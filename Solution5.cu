@@ -1,5 +1,17 @@
 #pragma once
 
+__device__ int get_query_id(int unique_id, int ref_nb){
+    return unique_id / ref_nb;
+}
+
+__device__ int get_ref_id(int unique_id, int ref_nb){
+    return unique_id % ref_nb;
+}
+
+__device__ int get_dim(int unique_id, int dim){
+    return unique_id % dim;
+}
+
 /**
  * filling dots, denom_a, denom_b
  */
@@ -15,51 +27,51 @@ __global__ void fill_gpu(const float * ref,
 
     int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int query_index = unique_id / (ref_nb);
-    int ref_index = unique_id % ref_nb;
-    int d = unique_id % dim;
+    int query_index = get_query_id(unique_id, ref_nb);
+    int ref_index = get_ref_id(unique_id, ref_nb);
+    int d = get_dim(unique_id, dim);
     
     if(query_index < query_nb && ref_index < ref_nb){
         int it = query_index*ref_nb*dim + ref_index*dim + d;
+
         dots[it] = ref[d * ref_nb + ref_index] * query[d * query_nb + query_index];
         denom_a[it] = ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index];
-        denom_b[unique_id] = query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
+        denom_b[it] = query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
     }  
 }
 
 // Reduction kernel to sum values along the dimension
-__global__ void reduceDimension(const float* dots, const float* denom_a, const float* denom_b,
-                                const int ref_nb, const int query_nb, const int dim,
-                                float* sum_dots, float* sum_denom_a, float* sum_denom_b) {
-    extern __shared__ float sharedMem[];
-
+__global__ void reduceDimension(const float* dots, 
+                                const float* denom_a, 
+                                const float* denom_b,
+                                const int ref_nb, 
+                                const int query_nb, 
+                                const int dim,
+                                float* sum_dots, 
+                                float* sum_denom_a, 
+                                float* sum_denom_b) {
+    
     int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
-    int query_index = unique_id / ref_nb;
-    int ref_index = unique_id % ref_nb;
+    
+    int query_index = get_query_id(unique_id, query_nb);
+    int ref_index = get_ref_id(unique_id, ref_nb);
+    
+    double temp_dots = 0; 
+    double temp_denom_a = 0;
+    double temp_denom_b = 0;
 
-    if (query_index < query_nb && ref_index < ref_nb) {
-        // Initialize shared memory
-        sharedMem[threadIdx.x] = dots[unique_id];
-        sharedMem[blockDim.x + threadIdx.x] = denom_a[unique_id];
-        sharedMem[2 * blockDim.x + threadIdx.x] = denom_b[unique_id];
+    if (query_index < query_nb && ref_index < ref_nb){
+        int it = query_index*ref_nb*dim + ref_index*dim;
 
-        // Perform parallel reduction along the dimension
-        for (int stride = blockDim.x; stride > 0; stride /= 2) {
-            __syncthreads();
-            if (threadIdx.x < stride) {
-                sharedMem[threadIdx.x] += sharedMem[threadIdx.x + stride];
-                sharedMem[blockDim.x + threadIdx.x] += sharedMem[blockDim.x + threadIdx.x + stride];
-                sharedMem[2 * blockDim.x + threadIdx.x] += sharedMem[2 * blockDim.x + threadIdx.x + stride];
-            }
+        for(int d = 0; d < dim; ++d){
+            temp_dots += dots[it + d];
+            temp_denom_a += denom_a[it + d];
+            temp_denom_b += denom_b[it + d];
         }
-
-        // Write the result to output arrays
-        if (threadIdx.x == 0) {
-            int outputIndex = query_index * ref_nb + ref_index;
-            sum_dots[outputIndex] = sharedMem[0];
-            sum_denom_a[outputIndex] = sharedMem[blockDim.x];
-            sum_denom_b[outputIndex] = sharedMem[2 * blockDim.x];
-        }
+    
+        sum_dots[query_index + ref_index*query_nb] = temp_dots;
+        sum_denom_a[query_index + ref_index*query_nb] = temp_denom_a;
+        sum_denom_b[query_index + ref_index*query_nb] = temp_denom_b;
     }
 }
 
@@ -70,11 +82,10 @@ __global__ void cosine_distance_gpu(const float * ref,
                                     const int     dim,
                                     float *       dist,
                                     int *         index, 
-                                    float * dots, 
-                                    float * denom_a, 
-                                    float * denom_b) {
+                                    const float* sum_dots, 
+                                    const float* sum_denom_a, 
+                                    const float* sum_denom_b) {
     
-
     int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
 
     int query_index = unique_id / (ref_nb);
@@ -83,9 +94,8 @@ __global__ void cosine_distance_gpu(const float * ref,
     if(query_index < query_nb && ref_index < ref_nb){
 
         index[query_index + ref_index*query_nb] =  ref_index;
-        dist[query_index + ref_index*query_nb] = dot / (sqrt(denom_a) * sqrt(denom_b));
-        //dist[query_index + ref_index*query_nb] = unique_id;
-
+        dist[query_index + ref_index*query_nb] = sum_dots[query_index + ref_index*query_nb] / (sqrt(sum_denom_a[query_index + ref_index*query_nb]) * sqrt(sum_denom_b[query_index + ref_index*query_nb]));
+        
     }  
 }
 

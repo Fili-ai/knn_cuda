@@ -63,9 +63,9 @@ bool your_solution(const float * ref,
 
     // Location for index and dist 
     int * index_gpu;
-    gpuErrchk(cudaMalloc(&index_gpu, query_nb*ref_nb*sizeof(int)));
+    gpuErrchk(cudaMallocManaged(&index_gpu, query_nb*ref_nb*sizeof(int)));
     float * dist_gpu;
-    gpuErrchk(cudaMalloc(&dist_gpu, query_nb*ref_nb*sizeof(float)));
+    gpuErrchk(cudaMallocManaged(&dist_gpu, query_nb*ref_nb*sizeof(float)));
     
 
     // ---------------------------------- Transfering data on device -------------------------------
@@ -122,8 +122,10 @@ bool your_solution(const float * ref,
     //// kernel launching
     fill_gpu<<<grid_fill, block_size_fill>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dots, denom_a, denom_b);
     reduceDimension<<<grid_reduction, block_size_reduction>>>(dots, denom_a, denom_b, ref_nb, query_nb, dim, sum_dots, sum_denom_a, sum_denom_b);
-    //cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dist_gpu, index_gpu, sum_dots, sum_denom_a, sum_denom_b);
-    //insertion_sort_gpu<<<grid, block_size>>>(ref_nb, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
+    
+    cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_nb, query_nb, dist_gpu, index_gpu, sum_dots, sum_denom_a, sum_denom_b);
+  
+    insertion_sort_gpu<<<grid, block_size>>>(ref_nb, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
     
     // ---------------------------------- Transfering data on host -------------------------------
 
@@ -137,16 +139,7 @@ bool your_solution(const float * ref,
     if(LOG_LEVEL < 2){   
         
         /*
-        for(int i = 0; i < query_nb ; ++i){
-            std::cout<< std::endl << i <<" query:" << std::endl; 
-            for (int j = 0; j < ref_nb; ++j){
-                std::cout << "\treference index: " << index_gpu[i + j*query_nb] << " dist: " << dist_gpu[i + j*query_nb] <<std::endl;
-            }
-        }
-        */
-        
-
-        
+        std::cout << "------------------------- Fill func -----------------------------";
         for(int query_index = 0; query_index < query_nb ; ++query_index){
             std::cout<< std::endl << query_index <<" query:" << std::endl; 
 
@@ -161,15 +154,31 @@ bool your_solution(const float * ref,
                 }
             }
         }
-        
-        std::cout << "Sum dots";
+        */
+
+        std::cout << "\n------------------------- Sum dots -----------------------------";
+        for(int query_index = 0; query_index < query_nb ; ++query_index){
+            std::cout<< std::endl << query_index <<" query:" << std::endl; 
+            for (int ref_index = 0; ref_index < ref_nb; ++ref_index){
+                std::cout << "\treference index: " << ref_index << std::endl;
+                std::cout << "\t\tsum_dots: " << sum_dots[query_index + ref_index*query_nb] <<std::endl;
+                std::cout << "\t\tsum_denom_a: " << sum_denom_a[query_index + ref_index*query_nb] <<std::endl;
+                std::cout << "\t\tsum_denom_b: " << sum_denom_b[query_index + ref_index*query_nb] <<std::endl;
+                float temp = sum_dots[query_index + ref_index*query_nb] / (sqrt(sum_denom_a[query_index + ref_index*query_nb]) * sqrt(sum_denom_b[query_index + ref_index*query_nb]));
+                std::cout << "\t\tcosine distance: " << temp << std::endl;
+            }
+        }
+
+        std::cout << "------------------------- cosine distance-----------------------------";
         for(int i = 0; i < query_nb ; ++i){
             std::cout<< std::endl << i <<" query:" << std::endl; 
             for (int j = 0; j < ref_nb; ++j){
-                std::cout << "\treference index: " << j << " sum_dots: " << sum_dots[i + j*query_nb] <<std::endl;
+                std::cout << "\treference index: " << index_gpu[i + j*query_nb] << " dist: " << dist_gpu[i + j*query_nb] <<std::endl;
             }
         }
     }
+
+    std::cout << "------------------------- finish YourSolution.c -----------------------------";
 
     
     // ---------------------------------- Free memory -------------------------------

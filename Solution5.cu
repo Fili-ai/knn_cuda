@@ -39,10 +39,10 @@ __global__ void fill_gpu(const float * ref,
     
     if(it < size ){
 
-        dots[it] = it;
-        //dots[it] = ref[d * ref_nb + ref_index] * query[d * query_nb + query_index]; 
-        //denom_a[it] = ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index];
-        //denom_b[it] = query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
+        //dots[it] = it;
+        dots[it] = ref[d * ref_nb + ref_index] * query[d * query_nb + query_index]; 
+        denom_a[it] = ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index];
+        denom_b[it] = query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
     }
 }
 
@@ -59,20 +59,22 @@ __global__ void reduceDimension(const float* dots,
     
     int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
     
-    int query_index = get_query_id(unique_id, query_nb);
+    int query_index = get_query_id(unique_id, ref_nb);
     int ref_index = get_ref_id(unique_id, ref_nb);
     
     double temp_dots = 0; 
     double temp_denom_a = 0;
     double temp_denom_b = 0;
 
-    if (query_index < query_nb && ref_index < ref_nb){
-        int it = query_index + ref_index*dim;
+    int it = query_index + ref_index*dim;
 
-        for(int d = 0; d < dim; d += ref_nb*dim){
-            temp_dots += dots[it + d];
-            temp_denom_a += denom_a[it + d];
-            temp_denom_b += denom_b[it + d];
+    if (query_index < query_nb && ref_index < ref_nb){
+        
+
+        for(int d = 0; d < dim; ++d){
+            temp_dots += dots[it + ref_nb*dim*d];
+            temp_denom_a += denom_a[it + ref_nb*dim*d];
+            temp_denom_b += denom_b[it + ref_nb*dim*d];
         }
     
         sum_dots[query_index + ref_index*query_nb] = temp_dots;
@@ -81,11 +83,8 @@ __global__ void reduceDimension(const float* dots,
     }
 }
 
-__global__ void cosine_distance_gpu(const float * ref,
-                                    const int     ref_nb,
-                                    const float * query,
+__global__ void cosine_distance_gpu(const int     ref_nb,
                                     const int     query_nb,
-                                    const int     dim,
                                     float *       dist,
                                     int *         index, 
                                     const float* sum_dots, 
@@ -94,14 +93,18 @@ __global__ void cosine_distance_gpu(const float * ref,
     
     int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int query_index = unique_id / (ref_nb);
-    int ref_index = unique_id % ref_nb;
-    
+    int query_index = get_query_id(unique_id, ref_nb);
+    int ref_index = get_ref_id(unique_id, ref_nb);
+
+    float temp_denom_a = sqrt(sum_denom_a[query_index + ref_index*query_nb]);
+    float temp_denom_b = sqrt(sum_denom_b[query_index + ref_index*query_nb]);
+
     if(query_index < query_nb && ref_index < ref_nb){
 
+        //dist[query_index + ref_index*query_nb] = query_index + ref_index*query_nb;
         index[query_index + ref_index*query_nb] =  ref_index;
-        dist[query_index + ref_index*query_nb] = sum_dots[query_index + ref_index*query_nb] / (sqrt(sum_denom_a[query_index + ref_index*query_nb]) * sqrt(sum_denom_b[query_index + ref_index*query_nb]));
-        
+        dist[query_index + ref_index*query_nb] = sum_dots[query_index + ref_index*query_nb] / (temp_denom_a * temp_denom_b );
+               
     }  
 }
 

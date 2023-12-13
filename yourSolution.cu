@@ -121,7 +121,7 @@ bool your_solution(const float * ref,
 
     //// kernel launching
     fill_gpu<<<grid_fill, block_size_fill>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dots, denom_a, denom_b);
-    //reduceDimension<<<grid_reduction, block_size_reduction>>>(dots, denom_a, denom_b, ref_nb, query_nb, dim, sum_dots, sum_denom_a, sum_denom_b);
+    reduceDimension<<<grid_reduction, block_size_reduction>>>(dots, denom_a, denom_b, ref_nb, query_nb, dim, sum_dots, sum_denom_a, sum_denom_b);
     //cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dist_gpu, index_gpu, sum_dots, sum_denom_a, sum_denom_b);
     //insertion_sort_gpu<<<grid, block_size>>>(ref_nb, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
     
@@ -135,6 +135,7 @@ bool your_solution(const float * ref,
 
     
     if(LOG_LEVEL < 2){   
+        
         /*
         for(int i = 0; i < query_nb ; ++i){
             std::cout<< std::endl << i <<" query:" << std::endl; 
@@ -143,7 +144,9 @@ bool your_solution(const float * ref,
             }
         }
         */
+        
 
+        
         for(int query_index = 0; query_index < query_nb ; ++query_index){
             std::cout<< std::endl << query_index <<" query:" << std::endl; 
 
@@ -152,12 +155,18 @@ bool your_solution(const float * ref,
 
                 for(int d = 0; d < dim; d++){
                     
-                    std::cout<< std::endl << "\t\t" <<d <<" dim:" << std::endl;
-
-                    int it = query_index*ref_nb*dim + ref_index*dim + d;
+                    int it = query_index + ref_index*dim + d*ref_nb*dim;
                 
-                    std::cout << "\t\t\tit: " << it << " dots: " << dots[it] << std::endl;
+                    std::cout<< "\t\t" << d <<" dim -> it: " << it << " dots: " << dots[it] << std::endl;
                 }
+            }
+        }
+        
+        std::cout << "Sum dots";
+        for(int i = 0; i < query_nb ; ++i){
+            std::cout<< std::endl << i <<" query:" << std::endl; 
+            for (int j = 0; j < ref_nb; ++j){
+                std::cout << "\treference index: " << j << " sum_dots: " << sum_dots[i + j*query_nb] <<std::endl;
             }
         }
     }

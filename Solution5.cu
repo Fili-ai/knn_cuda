@@ -24,20 +24,26 @@ __global__ void fill_gpu(const float * ref,
                         float *       denom_a,
                         float *       denom_b) {
     
+    __shared__ int size;
+    if(threadIdx.x == 0)
+        size = query_nb*dim*ref_nb;
+    __syncthreads();
 
     int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
 
     int query_index = get_query_id(unique_id, ref_nb);
     int ref_index = get_ref_id(unique_id, ref_nb);
     int d = get_dim(unique_id, dim);
-    
-    if(query_index < query_nb && ref_index < ref_nb){
-        int it = query_index*ref_nb*dim + ref_index*dim + d;
 
-        dots[it] = ref[d * ref_nb + ref_index] * query[d * query_nb + query_index];
-        denom_a[it] = ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index];
-        denom_b[it] = query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
-    }  
+    int it = query_index + ref_index*dim + d*ref_nb*dim;
+    
+    if(it < size ){
+
+        dots[it] = it;
+        //dots[it] = ref[d * ref_nb + ref_index] * query[d * query_nb + query_index]; 
+        //denom_a[it] = ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index];
+        //denom_b[it] = query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
+    }
 }
 
 // Reduction kernel to sum values along the dimension
@@ -61,9 +67,9 @@ __global__ void reduceDimension(const float* dots,
     double temp_denom_b = 0;
 
     if (query_index < query_nb && ref_index < ref_nb){
-        int it = query_index*ref_nb*dim + ref_index*dim;
+        int it = query_index + ref_index*dim;
 
-        for(int d = 0; d < dim; ++d){
+        for(int d = 0; d < dim; d += ref_nb*dim){
             temp_dots += dots[it + d];
             temp_denom_a += denom_a[it + d];
             temp_denom_b += denom_b[it + d];

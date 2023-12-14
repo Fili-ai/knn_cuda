@@ -46,6 +46,44 @@ __global__ void fill_gpu(const float * ref,
     }
 }
 
+//[Assumption] threadIdx.x % dim == 0
+__global__ void reduce0(const float *g_idata, float *g_odata, const int query_nb, const int ref_nb, const int dim) {
+    extern __shared__ float sdata[];
+    __shared__ int size;
+    //__shared__ int total_ref;
+
+    if (threadIdx.x == 0)
+        size = query_nb * dim * ref_nb;
+        // where 1024 is the blockIdx.x
+        //total_ref = 1024 / dim; 
+    __syncthreads();
+
+    // each thread loads one element from global to shared mem
+    unsigned int tid = threadIdx.x;
+
+    unsigned int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
+    int query_index = get_query_id(unique_id, ref_nb*dim);
+    int ref_index = get_ref_id(unique_id, dim) - query_index*ref_nb;
+
+    if (unique_id < size)
+        sdata[tid] = g_idata[unique_id];
+
+    // do reduction in shared mem
+    for(unsigned int s=1; s < dim; s *= 2) {
+        if (tid % (2*s) == 0) {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    // write result for this block to global mem
+    if (tid % dim == 0){
+        g_odata[query_index + ref_index * query_nb] = sdata[tid];
+        //g_odata[query_index + ref_index * query_nb] = query_index;
+    }
+
+}
+
 // Reduction kernel to sum values along the dimension
 __global__ void reduceDimension(const float* dots, 
                                 const float* denom_a, 
@@ -57,36 +95,28 @@ __global__ void reduceDimension(const float* dots,
                                 float* sum_denom_a, 
                                 float* sum_denom_b) {
     
-    __shared__ int size_check;
-    if(threadIdx.x == 0)
-        size_check = query_nb*ref_nb;
-    __syncthreads();
-
     int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
-    
     int query_index = get_query_id(unique_id, ref_nb);
-    int ref_index = unique_id%ref_nb;
-    
-    double temp_dots = 0; 
-    double temp_denom_a = 0;
-    double temp_denom_b = 0;
+    int ref_index = unique_id % ref_nb;
 
-    int it = ref_index*dim + query_index*ref_nb*dim;
+    int starting_index = ref_index * dim + query_index * ref_nb * dim;
 
-    if (unique_id < size_check){
-        
-        
-        for(int d = 0; d < dim; ++d){
-            temp_dots += dots[it + d];
-            temp_denom_a += denom_a[it + d];
-            temp_denom_b += denom_b[it + d];
-        }
-        
-    
-        sum_dots[query_index + ref_index*query_nb] = temp_dots;
-        sum_denom_a[query_index + ref_index*query_nb] = temp_denom_a;
-        sum_denom_b[query_index + ref_index*query_nb] = temp_denom_b;
+    float temp_dots = 0;
+    float temp_denom_a = 0;
+    float temp_denom_b = 0;
+    unsigned it = 0;
+
+    for (int d = 0; d < dim; ++d) {
+        it = starting_index + d;
+        temp_dots += dots[it];
+        temp_denom_a += denom_a[it];
+        temp_denom_b += denom_b[it];
     }
+
+    sum_dots[query_index + ref_index * query_nb] = temp_dots;
+    sum_denom_a[query_index + ref_index * query_nb] = temp_denom_a;
+    sum_denom_b[query_index + ref_index * query_nb] = temp_denom_b;
+
 }
 
 __global__ void cosine_distance_gpu(const int     ref_nb,

@@ -97,17 +97,17 @@ bool your_solution(const float * ref,
     // Solution - 5
     // memory management 
     float * dots;
-    gpuErrchk(cudaMalloc(&dots, query_nb*ref_nb*dim*sizeof(float)));
+    gpuErrchk(cudaMallocManaged(&dots, query_nb*ref_nb*dim*sizeof(float)));
     float * denom_a;
-    gpuErrchk(cudaMalloc(&denom_a, query_nb*ref_nb*dim*sizeof(float)));
+    gpuErrchk(cudaMallocManaged(&denom_a, query_nb*ref_nb*dim*sizeof(float)));
     float * denom_b;
-    gpuErrchk(cudaMalloc(&denom_b, query_nb*ref_nb*dim*sizeof(float)));
+    gpuErrchk(cudaMallocManaged(&denom_b, query_nb*ref_nb*dim*sizeof(float)));
     float * sum_dots;
-    gpuErrchk(cudaMalloc(&sum_dots, query_nb*ref_nb*sizeof(float)));
+    gpuErrchk(cudaMallocManaged(&sum_dots, query_nb*ref_nb*sizeof(float)));
     float * sum_denom_a;
-    gpuErrchk(cudaMalloc(&sum_denom_a, query_nb*ref_nb*sizeof(float)));
+    gpuErrchk(cudaMallocManaged(&sum_denom_a, query_nb*ref_nb*sizeof(float)));
     float * sum_denom_b;
-    gpuErrchk(cudaMalloc(&sum_denom_b, query_nb*ref_nb*sizeof(float)));
+    gpuErrchk(cudaMallocManaged(&sum_denom_b, query_nb*ref_nb*sizeof(float)));
 
     //// block and grid dimension 
     dim3 block_size(1024, 1, 1);
@@ -121,7 +121,10 @@ bool your_solution(const float * ref,
 
     //// kernel launching
     fill_gpu<<<grid_fill, block_size_fill>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dots, denom_a, denom_b);
-    reduceDimension<<<grid_reduction, block_size_reduction>>>(dots, denom_a, denom_b, ref_nb, query_nb, dim, sum_dots, sum_denom_a, sum_denom_b); 
+    //reduceDimension<<<grid_reduction, block_size_reduction>>>(dots, denom_a, denom_b, ref_nb, query_nb, dim, sum_dots, sum_denom_a, sum_denom_b); 
+    reduce0<<<grid_fill, block_size_fill, block_size.x * sizeof(float)>>>(dots, sum_dots, query_nb, ref_nb, dim);
+    reduce0<<<grid_fill, block_size_fill, block_size.x * sizeof(float)>>>(denom_a, sum_denom_a, query_nb, ref_nb, dim);
+    reduce0<<<grid_fill, block_size_fill, block_size.x * sizeof(float)>>>(denom_b, sum_denom_b, query_nb, ref_nb, dim);
     cudaFree(dots);
     cudaFree(denom_a);
     cudaFree(denom_b);
@@ -142,7 +145,7 @@ bool your_solution(const float * ref,
     
     if(LOG_LEVEL < 2){   
         
-        /*
+        
         std::cout << "------------------------- Fill func -----------------------------";
         for(int query_index = 0; query_index < query_nb ; ++query_index){
             std::cout<< std::endl << query_index <<" query:" << std::endl; 
@@ -152,7 +155,7 @@ bool your_solution(const float * ref,
 
                 for(int d = 0; d < dim; d++){
                     
-                    int it = query_index + ref_index*dim + d*ref_nb*dim;
+                    int it = d + ref_index * dim + query_index * ref_nb * dim;;
                 
                     std::cout<< "\t\t" << d <<" dim -> it: " << it << " dots: " << dots[it] << std::endl;
                 }
@@ -165,14 +168,14 @@ bool your_solution(const float * ref,
             std::cout<< std::endl << query_index <<" query:" << std::endl; 
             for (int ref_index = 0; ref_index < ref_nb; ++ref_index){
                 std::cout << "\treference index: " << ref_index << std::endl;
-                std::cout << "\t\tsum_dots: " << sum_dots[query_index + ref_index*query_nb] <<std::endl;
+                std::cout << "\t\t\tsum_dots: " << sum_dots[query_index + ref_index*query_nb] <<std::endl;
                 std::cout << "\t\tsum_denom_a: " << sum_denom_a[query_index + ref_index*query_nb] <<std::endl;
                 std::cout << "\t\tsum_denom_b: " << sum_denom_b[query_index + ref_index*query_nb] <<std::endl;
-                float temp = sum_dots[query_index + ref_index*query_nb] / (sqrt(sum_denom_a[query_index + ref_index*query_nb]) * sqrt(sum_denom_b[query_index + ref_index*query_nb]));
-                std::cout << "\t\tcosine distance: " << temp << std::endl;
+                //float temp = sum_dots[query_index + ref_index*query_nb] / (sqrt(sum_denom_a[query_index + ref_index*query_nb]) * sqrt(sum_denom_b[query_index + ref_index*query_nb]));
+                //std::cout << "\t\tcosine distance: " << temp << std::endl;
             }
         }
-
+        /*
         std::cout << "------------------------- cosine distance-----------------------------";
         for(int i = 0; i < query_nb ; ++i){
             std::cout<< std::endl << i <<" query:" << std::endl; 

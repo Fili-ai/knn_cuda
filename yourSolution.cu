@@ -63,9 +63,9 @@ bool your_solution(const float * ref,
 
     // Location for index and dist 
     int * index_gpu;
-    gpuErrchk(cudaMallocManaged(&index_gpu, query_nb*ref_nb*sizeof(int)));
+    gpuErrchk(cudaMalloc(&index_gpu, query_nb*ref_nb*sizeof(int)));
     float * dist_gpu;
-    gpuErrchk(cudaMallocManaged(&dist_gpu, query_nb*ref_nb*sizeof(float)));
+    gpuErrchk(cudaMalloc(&dist_gpu, query_nb*ref_nb*sizeof(float)));
     
 
     // ---------------------------------- Transfering data on device -------------------------------
@@ -97,17 +97,17 @@ bool your_solution(const float * ref,
     // Solution - 5
     // memory management 
     float * dots;
-    gpuErrchk(cudaMallocManaged(&dots, query_nb*ref_nb*dim*sizeof(float)));
+    gpuErrchk(cudaMalloc(&dots, query_nb*ref_nb*dim*sizeof(float)));
     float * denom_a;
-    gpuErrchk(cudaMallocManaged(&denom_a, query_nb*ref_nb*dim*sizeof(float)));
+    gpuErrchk(cudaMalloc(&denom_a, query_nb*ref_nb*dim*sizeof(float)));
     float * denom_b;
-    gpuErrchk(cudaMallocManaged(&denom_b, query_nb*ref_nb*dim*sizeof(float)));
+    gpuErrchk(cudaMalloc(&denom_b, query_nb*ref_nb*dim*sizeof(float)));
     float * sum_dots;
-    gpuErrchk(cudaMallocManaged(&sum_dots, query_nb*ref_nb*sizeof(float)));
+    gpuErrchk(cudaMalloc(&sum_dots, query_nb*ref_nb*sizeof(float)));
     float * sum_denom_a;
-    gpuErrchk(cudaMallocManaged(&sum_denom_a, query_nb*ref_nb*sizeof(float)));
+    gpuErrchk(cudaMalloc(&sum_denom_a, query_nb*ref_nb*sizeof(float)));
     float * sum_denom_b;
-    gpuErrchk(cudaMallocManaged(&sum_denom_b, query_nb*ref_nb*sizeof(float)));
+    gpuErrchk(cudaMalloc(&sum_denom_b, query_nb*ref_nb*sizeof(float)));
 
     //// block and grid dimension 
     dim3 block_size(1024, 1, 1);
@@ -121,10 +121,14 @@ bool your_solution(const float * ref,
 
     //// kernel launching
     fill_gpu<<<grid_fill, block_size_fill>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dots, denom_a, denom_b);
-    reduceDimension<<<grid_reduction, block_size_reduction>>>(dots, denom_a, denom_b, ref_nb, query_nb, dim, sum_dots, sum_denom_a, sum_denom_b);
-    
+    reduceDimension<<<grid_reduction, block_size_reduction>>>(dots, denom_a, denom_b, ref_nb, query_nb, dim, sum_dots, sum_denom_a, sum_denom_b); 
+    cudaFree(dots);
+    cudaFree(denom_a);
+    cudaFree(denom_b);
     cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_nb, query_nb, dist_gpu, index_gpu, sum_dots, sum_denom_a, sum_denom_b);
-  
+    //cudaFree(sum_dots);
+    //cudaFree(sum_denom_a);
+    //cudaFree(sum_denom_b);
     insertion_sort_gpu<<<grid, block_size>>>(ref_nb, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
     
     // ---------------------------------- Transfering data on host -------------------------------
@@ -154,7 +158,7 @@ bool your_solution(const float * ref,
                 }
             }
         }
-        */
+        
 
         std::cout << "\n------------------------- Sum dots -----------------------------";
         for(int query_index = 0; query_index < query_nb ; ++query_index){
@@ -176,9 +180,9 @@ bool your_solution(const float * ref,
                 std::cout << "\treference index: " << index_gpu[i + j*query_nb] << " dist: " << dist_gpu[i + j*query_nb] <<std::endl;
             }
         }
+        */
+        std::cout << "------------------------- finish YourSolution.c -----------------------------";
     }
-
-    std::cout << "------------------------- finish YourSolution.c -----------------------------";
 
     
     // ---------------------------------- Free memory -------------------------------
@@ -190,6 +194,6 @@ bool your_solution(const float * ref,
 
     cudaFree(index_gpu);
     cudaFree(dist_gpu);
-    
+
     return true;
 }

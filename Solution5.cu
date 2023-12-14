@@ -5,7 +5,7 @@ __device__ int get_query_id(int unique_id, int ref_nb){
 }
 
 __device__ int get_ref_id(int unique_id, int ref_nb){
-    return unique_id % ref_nb;
+    return unique_id / ref_nb;
 }
 
 __device__ int get_dim(int unique_id, int dim){
@@ -31,18 +31,18 @@ __global__ void fill_gpu(const float * ref,
 
     int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int query_index = get_query_id(unique_id, ref_nb);
-    int ref_index = get_ref_id(unique_id, ref_nb);
+    int query_index = get_query_id(unique_id, ref_nb*dim);
+    int ref_index = get_ref_id(unique_id, dim) - query_index*ref_nb;
     int d = get_dim(unique_id, dim);
 
-    int it = query_index + ref_index*dim + d*ref_nb*dim;
+    //int it = d + ref_index*dim + query_index*ref_nb*dim;
     
-    if(it < size ){
+    if(unique_id < size ){
 
-        //dots[it] = it;
-        dots[it] = ref[d * ref_nb + ref_index] * query[d * query_nb + query_index]; 
-        denom_a[it] = ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index];
-        denom_b[it] = query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
+        //dots[unique_id] = query_index;
+        dots[unique_id] = ref[d * ref_nb + ref_index] * query[d * query_nb + query_index]; 
+        denom_a[unique_id] = ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index];
+        denom_b[unique_id] = query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
     }
 }
 
@@ -57,25 +57,31 @@ __global__ void reduceDimension(const float* dots,
                                 float* sum_denom_a, 
                                 float* sum_denom_b) {
     
+    __shared__ int size_check;
+    if(threadIdx.x == 0)
+        size_check = query_nb*ref_nb;
+    __syncthreads();
+
     int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
     
     int query_index = get_query_id(unique_id, ref_nb);
-    int ref_index = get_ref_id(unique_id, ref_nb);
+    int ref_index = unique_id%ref_nb;
     
     double temp_dots = 0; 
     double temp_denom_a = 0;
     double temp_denom_b = 0;
 
-    int it = query_index + ref_index*dim;
+    int it = ref_index*dim + query_index*ref_nb*dim;
 
-    if (query_index < query_nb && ref_index < ref_nb){
+    if (unique_id < size_check){
         
-
+        
         for(int d = 0; d < dim; ++d){
-            temp_dots += dots[it + ref_nb*dim*d];
-            temp_denom_a += denom_a[it + ref_nb*dim*d];
-            temp_denom_b += denom_b[it + ref_nb*dim*d];
+            temp_dots += dots[it + d];
+            temp_denom_a += denom_a[it + d];
+            temp_denom_b += denom_b[it + d];
         }
+        
     
         sum_dots[query_index + ref_index*query_nb] = temp_dots;
         sum_denom_a[query_index + ref_index*query_nb] = temp_denom_a;
@@ -94,7 +100,7 @@ __global__ void cosine_distance_gpu(const int     ref_nb,
     int unique_id = blockIdx.x * blockDim.x + threadIdx.x;
 
     int query_index = get_query_id(unique_id, ref_nb);
-    int ref_index = get_ref_id(unique_id, ref_nb);
+    int ref_index = unique_id%ref_nb;;
 
     float temp_denom_a = sqrt(sum_denom_a[query_index + ref_index*query_nb]);
     float temp_denom_b = sqrt(sum_denom_b[query_index + ref_index*query_nb]);

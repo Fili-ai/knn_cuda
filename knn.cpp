@@ -8,8 +8,6 @@
 
 #include <iostream>
 
-#include "variables.h"
-
 #include "yourSolution.h"
 
 /**
@@ -212,14 +210,6 @@ bool test(const float * ref,
     int nb_correct_precisions = 0;
     int nb_correct_indexes    = 0;
     for (int i=0; i<query_nb*k; ++i) {
-
-        if(name != "knn_c" && LOG_LEVEL < 1){          
-            if(i % k == 0)
-                std::cout << "\nQuery: " << i/k<< std::endl;
-            std::cout << "\n CPU: index " << gt_knn_index[i] << " \tdistance " << gt_knn_dist[i] << std::endl;
-            std::cout << " GPU: index " << test_knn_index[i] << " \tdistance " << test_knn_dist[i] << std::endl;
-            
-        }
 
         if (fabs(test_knn_dist[i] - gt_knn_dist[i]) <= precision) {
             nb_correct_precisions++;

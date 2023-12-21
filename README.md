@@ -1,45 +1,80 @@
 # High-Performance Data and Graph Analytics - Fall 2023 Contest
 
-## Challenge
+## Table of Content
 
-GPU-accelerated Exact K-Nearest Neighobor with Cosine as distance metric
+- [High-Performance Data and Graph Analytics - Fall 2023 Contest](#high-performance-data-and-graph-analytics---fall-2023-contest)
+  - [Table of Content](#table-of-content)
+  - [Abstract](#abstract)
+  - [Implementations](#implementations)
+    - [Solution 1](#solution-1)
+    - [Solution 2](#solution-2)
+    - [Solution 3](#solution-3)
+    - [Solution 4 - Draft](#solution-4---draft)
+  - [Weak Point](#weak-point)
+  - [Perfomance Comparison](#perfomance-comparison)
 
-__Author__: Bolshakova Liubov, Galli Filippo
 
-## Tips & Tricks
+## Abstract
 
-### Logging - Debug
-
-In __knn.cpp__ there a define of the LOG_LEVEL in this way we can set it and show some useful information about our code. Log levels are:
-
-- 2 -> only error of cuda commands
-- 1 -> + display results of our cuda kernel
-- 0 -> + display results of CPU reference and CUDA
+This is the final project of the course "High Performance Graph and Data Analytics" (HPDGA) attended at Politecnico of Milan. The challenge is to develop a K-Nearest Neighbors (KNN) algorithm that runs on GPU Nvidia using C, C++ and Cuda as programming languages.
+Starting from a CPU version given by our lecturer Ian, I developed my own solutions which are "Solution1.cu", "Solution2.cu", "Solution3.cu" and "Solution4.cu".
+The main idea that directed the development is to simplify the work associated with each thread. So, as I will describe better in the Implementations chapter, this is the focus and evolutionary steps of each solution.
 
 ## Implementations
 
+From each solution to the following one I decrease the work-per-thread but there is an increment of the parallelization level of each task.
+Apart from data-coalescent, I haven't developed any other technique to improve memory access patterns or anything else.
+
 ### Solution 1
 
-The first attempt to resolve this challenge on GPU. The shortest path is to modify a bit the function on the file knn.cpp to run the same function, sequentially, on GPU.
-This result has been achieved and as everyone could deduce the program is slower than run on CPU.
+I started working on the challenge by transposing the CPU version to a GPU one to identify the major bottleneck and work on it. However, as I will discuss in detail in the Performance Comparison chapter, this approach, although useful as a starting point, has several limitations in terms of performance. This is because GPUs are not optimized to work on sequential code like CPUs. As a result, I found that this solution is slower than its CPU counterpart.
 
 ### Solution 2
 
-The second attempt is focused on using the parallel power of GPU. The difference between the first trial is that in this case we define block size and grid size and each thread processed a query.
-It works and is faster than knn_gpu_1_Block_Grid.
-Initially we try to allocate distance and index array directly in each thread to avoid the problem of concurrent access to the memory. We fail beacuse right from the start with the smallest parameters we allocate too much memory per thread.
-So we allocate in the global memory all the space to contain all the index's array and distance ones for each thread. In this way all work fine but we have a bit of over head to read from the global memory.
+With "Solution2" I start to decrease work-per-thread. The main improvement is the parallelization of the function "knn_gpu". Each thread calculates $\frac{\textnormal{query number}}{32}$ queries. So for each query, it calculates every reference-query distance. In this way, all the work done by 1 thread is spread across 1024 threads.
 
 ### Solution 3
 
-Third attempt is focus on the parallelization on the reference and not queries.
+The idea of this solution is to parallelize the function "cosine_distance". In this way, each thread computes one reference-query distance and not all the reference-query distance as in the previous solution. This is possible thanks to a massive parallelization and an increase of working threads, specifically $\textnormal{query number} \cdot \textnormal{reference number}$.
 
-### Solution 4
+### Solution 4 - Draft
 
-Fourth attempt is focus on a mix between Solution 3 and 4. We use _query_nb*ref_nb_ threads to compute cosine distance, in this way each thread compute a single query-ref distance. After this work we call _query_nb_ threads to execute insertion sort, one thread for each query.
+The main goal of this solution is to achieve the highest possible level of parallelization. To accomplish this, I have performed a functional decomposition of every function, except for the insertion sort function. This allows me to adjust the number of threads to better suit the needs of each logical module. For instance, I created a function called "fill_gpu" that calculates one dimension of one reference-query distance and fills an auxiliary array called "dots".
 
-### Solution 5
+It's worth mentioning that this solution is still a work in progress due to time constraints. However, there are still many possibilities for improvement such as the reduction process hasn't been optimized yet.
 
-[__Target__] Fifth attempt is to achieve the maximum level of parallelization by increasing the number of threads so each ones calculate a single dimension of a query-ref distance. After these calculations, thanks to reduction we can sum all dimensions for each query-ref distance.
+## Weak Point
 
-[__Idea to try__] use 3D matrices (query x reference x dim) and unlock 3D blocks potential.
+Each solution has some lacks of optimization. I think the possible weak points of my solutions are:
+
+- the use of only 1 dimension for grid and block;
+- the massive use of global memory;
+- using flattened array and not 2D or 3D structured to work with data;
+
+## Perfomance Comparison
+
+I tested all of my solutions and CPU one to 3 possible settings of parameters gave me by default. \
+__Disclaimer__: I didn't try the second possible setting of parameters because it has so large numbers that Google Colab returned me a Memory Allocation Error and during the test, Solution 1 and CPU took so much time that it only confused the chart about times of executions.
+
+| Parameter      | 0 | 1 | 3 |
+| :----------- | :-----------: | :----------: | -----------: |
+| ref_nb      | 4096        | 16384      | 16384       |
+| query_nb    | 1024        | 4096       | 4096        |
+| dim         | 64          | 128        | 1280        |
+| k           | 16          | 100        | 16          |
+
+In the above matrix, there are the names of the variables in the code which correspond to:
+
+- ref_nb $\Rightarrow$ the number of references;
+- query_nb $\Rightarrow$ the number of queries;
+- dim $\Rightarrow$ the dimension of both references and queries;
+- k $\Rightarrow$ the number of the element to consider as the final result.
+
+I obtain the following times of run (in seconds):
+
+| $Solution /Parameter$      | 0 | 1 | 3 |
+| :----------- | :-----------: | :----------: | -----------: |
+| CPU      | 2,78050        | 113,9285      |        |
+| 1    | 28,10571        | 864,68838       |        |
+| 2         | 0,03464 | 0,66741 | 6,45223 |
+| 3           | 0,02343 | 0,57571 | 5,14595          |

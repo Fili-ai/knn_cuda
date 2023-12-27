@@ -43,6 +43,8 @@ The main goal of this solution is to achieve the highest possible level of paral
 
 It's worth mentioning that this solution is still a work in progress due to time constraints. However, there are still many possibilities for improvement such as the reduction process hasn't been optimized yet.
 
+
+
 ## Weak Point
 
 Each solution has some lacks of optimization. I think the possible weak points of my solutions are:

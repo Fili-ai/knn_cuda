@@ -27,10 +27,11 @@ __global__ void cosine_distance_gpu(const float * ref,
     int ref_index = unique_id % ref_nb;
     
     //cosine distance calculations
-    if(query_index < query_nb && ref_index < ref_nb){
+    if(query_index < query_nb){
 
         double dot = 0.0, denom_a = 0.0, denom_b = 0.0 ;
 
+        #pragma unroll
         for(unsigned int d = 0u; d < dim; ++d) {
             dot += ref[d * ref_nb + ref_index] * query[d * query_nb + query_index] ;
             denom_a += ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index] ;

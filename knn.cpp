@@ -315,7 +315,7 @@ int main(void) {
     // Test all k-NN functions
     printf("TESTS\n");
     test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &knn_c,            "knn_c",              2);
-    test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &your_solution,  "yourSolution",         1); 
+    test(ref, ref_nb, query, query_nb, dim, k, knn_dist, knn_index, &your_solution,  "yourSolution",         100); 
 
     // Deallocate memory 
     free(ref);

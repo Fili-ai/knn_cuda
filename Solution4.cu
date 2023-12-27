@@ -110,7 +110,7 @@ __global__ void reduceDimension(const float * dots,
      * @param ref_nb number of references
      * @param query_nb number of queries
      * @param dim dimension of each point (same for queries and references)
-     * @param sum_dots array to store result of the sums of dots
+     * @param sum_dotsfill_gpu array to store result of the sums of dots
      * @param sum_denom_a array to store result of the sums of denom_a
      * @param sum_denom_b array to store result of the sums of denom_b
      * 

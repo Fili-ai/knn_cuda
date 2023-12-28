@@ -4,6 +4,7 @@
 
 - [High-Performance Data and Graph Analytics - Fall 2023 Contest](#high-performance-data-and-graph-analytics---fall-2023-contest)
   - [Table of Content](#table-of-content)
+  - [Usage](#usage)
   - [Abstract](#abstract)
   - [Implementations](#implementations)
     - [Solution 1](#solution-1)
@@ -13,6 +14,15 @@
   - [Weak Point](#weak-point)
   - [Perfomance Comparison](#perfomance-comparison)
 
+## Usage
+
+If you have a Nvidia GPU with Cuda packages installed you have only to clone this repo and start to have fun with it. \
+Otherwise, you can use the Python notebook on the repo to run the code in Google Colab. It works this way:
+
+- Download this repo and upload it on your GitHub.
+- Upload the Python notebook on your Google Drive.
+- On your GitHub go in click on your profile icon -> settings -> developer settings -> personal access token and create one. [Guide for creating a token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
+- Now compile the cells in the notebook on Google Colab and then you can run, modify, and test the code on it.
 
 ## Abstract
 

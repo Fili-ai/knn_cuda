@@ -6,7 +6,9 @@ __global__ void cosine_distance_gpu(const float * ref,
                                     const int     query_nb,
                                     const int     dim,
                                     float *       dist,
-                                    int *         index) {
+                                    int *         index, 
+                                    const int     iter, 
+                                    const int     chunk) {
     
     /**
      * @brief function to calculate the cosine distance of references and queries
@@ -17,6 +19,8 @@ __global__ void cosine_distance_gpu(const float * ref,
      * @param dim dimension of each point (same for queries and references)
      * @param index array containing all reference's indexes
      * @param dist array containing all reference's distances
+     * @param iter number of queries already processed
+     * @param chunk number of query processed per iteration
     */
 
     // unique id of a thread
@@ -33,13 +37,13 @@ __global__ void cosine_distance_gpu(const float * ref,
 
         #pragma unroll
         for(unsigned int d = 0u; d < dim; ++d) {
-            dot += ref[d * ref_nb + ref_index] * query[d * query_nb + query_index] ;
+            dot += ref[d * ref_nb + ref_index] * query[d * chunk + query_index];
             denom_a += ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index] ;
-            denom_b += query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
+            denom_b += query[d * chunk + query_index] * query[d * chunk + query_index] ;
         } 
 
-        index[query_index + ref_index*query_nb] =  ref_index;
-        dist[query_index + ref_index*query_nb] = dot / (sqrt(denom_a) * sqrt(denom_b));
+        index[query_index + ref_index*chunk] = ref_index;
+        dist[query_index + ref_index*chunk] = dot / (sqrt(denom_a) * sqrt(denom_b));
 
     }  
 }

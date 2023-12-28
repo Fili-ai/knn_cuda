@@ -65,12 +65,12 @@ Each solution has some lacks of optimization. I think the possible weak points o
 
 I tested all of my solutions and CPU one to 4 possible settings of parameters gave me by default.
 
-| parameters / n° set of Parameter      | 0 | 1 |2| 3 |
-| :----------- | :-----------: | :----------: |:----------: | -----------: |
-| ref_nb      | 4096        | 163840      |16384      | 16384       |
-| query_nb    | 1024        | 40960       |4096       | 4096        |
+| parameters / n° set of Parameter      | 0 | 1 |2 | 3 |
+| :-----------: | :-----------: | :----------: |:----------: | :-----------: |
+| ref_nb      | 4096        | 16384      |163840      | 16384       |
+| query_nb    | 1024        | 4096       |40960       | 4096        |
 | dim         | 64          | 128         |128        | 1280        |
-| k           | 16          | 16          |100        | 16          |
+| k           | 16          | 100         |16        | 16          |
 
 In the above matrix, there are the names of the variables in the code which correspond to:
 
@@ -82,8 +82,8 @@ In the above matrix, there are the names of the variables in the code which corr
 I obtain the following times of run (in seconds):
 
 | Solution / n° set of Parameter      | 0 | 1 | 2 | 3 |
-| :----------- | :-----------: | :----------: |:----------: | -----------: |
-| CPU           | 2,78050       | ~30.000     |113,9285     |    ~5.000    |
-| 1             | 28,10571      | /           |864,68838    |    /         |
-| 2             | 0,03464       | 54,99231    |0,66741      | 6,45223      |
-| 3             | 0,02343       | 56,25519    |0,57571      | 5,14595      |
+| :-----------: | :-----------: | :----------: |:----------: | :-----------: |
+| CPU           | 2,78050       | 113,9285    | ~30.000     |    ~5.000    |
+| 1             | 28,10571      | 864,68838   | /           |    /         |
+| 2             | 0,03942       | 0,77215     | 54,99231    | 6,45223      |
+| 3             | 0,02343       | 0,57571     | 56,25519    | 5,14595      |

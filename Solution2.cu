@@ -117,6 +117,7 @@ __global__ void knn_gpu(const float * ref,
      * @param knn_dist array containing the first k references for each query
      * @param index array containing all reference's indexes 
      * @param dist array containing all reference's distances
+     * @param chunk number of query processed per iteration
     */
 
     // Each thread work on a small number of query 

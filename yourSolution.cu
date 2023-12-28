@@ -31,20 +31,19 @@ bool your_solution(const float * ref,
 
 
     /**
-    * @input ref reference points
-    * @input ref_nb number of reference points
-    * @input query the data to process and classify
-    * @input query_nb number of query
-    * @input dim dimension of every single point
-    * @input k number of neighbors
-    * @input knn_dist array to save the distances between every query 
-             and the reference point
-    * @input knn_index array with the solution of the classification
+    * @param ref reference points
+    * @param ref_nb number of reference points
+    * @param query the data to process and classify
+    * @param query_nb number of query
+    * @param dim dimension of every single point
+    * @param k number of neighbors
+    * @param knn_dist array to save the distances between every query and the reference point
+    * @param knn_index array with the solution of the classification
     */
 
     
     int chunk = query_nb;
-    bool use_chunk = true;
+    bool use_chunk = false;
 
     //10240 is maximum chunk size to avoid memory allocation error
     if(chunk > 10240){

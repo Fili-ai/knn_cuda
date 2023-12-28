@@ -53,8 +53,6 @@ The main goal of this solution is to achieve the highest possible level of paral
 
 It's worth mentioning that this solution is still a work in progress due to time constraints. However, there are still many possibilities for improvement such as the reduction process hasn't been optimized yet.
 
-
-
 ## Weak Point
 
 Each solution has some lacks of optimization. I think the possible weak points of my solutions are:
@@ -68,12 +66,12 @@ Each solution has some lacks of optimization. I think the possible weak points o
 I tested all of my solutions and CPU one to 3 possible settings of parameters gave me by default. \
 __Disclaimer__: I didn't try the second possible setting of parameters because it has so large numbers that Google Colab returned me a Memory Allocation Error and during the test, Solution 1 and CPU took so much time that it only confused the chart about times of executions.
 
-| Parameter      | 0 | 1 | 3 |
-| :----------- | :-----------: | :----------: | -----------: |
-| ref_nb      | 4096        | 16384      | 16384       |
-| query_nb    | 1024        | 4096       | 4096        |
-| dim         | 64          | 128        | 1280        |
-| k           | 16          | 100        | 16          |
+| parameters / n° set of Parameter      | 0 | 1 |2| 3 |
+| :----------- | :-----------: | :----------: |:----------: | -----------: |
+| ref_nb      | 4096        | 163840      |16384      | 16384       |
+| query_nb    | 1024        | 40960       |4096       | 4096        |
+| dim         | 64          | 128         |128        | 1280        |
+| k           | 16          | 16          |100        | 16          |
 
 In the above matrix, there are the names of the variables in the code which correspond to:
 
@@ -84,9 +82,9 @@ In the above matrix, there are the names of the variables in the code which corr
 
 I obtain the following times of run (in seconds):
 
-| $Solution /Parameter$      | 0 | 1 | 3 |
-| :----------- | :-----------: | :----------: | -----------: |
-| CPU      | 2,78050        | 113,9285      |        |
-| 1    | 28,10571        | 864,68838       |        |
-| 2         | 0,03464 | 0,66741 | 6,45223 |
-| 3           | 0,02343 | 0,57571 | 5,14595          |
+| Solution / n° set of Parameter      | 0 | 1 | 2 | 3 |
+| :----------- | :-----------: | :----------: |:----------: | -----------: |
+| CPU           | 2,78050       | ~30.000     |113,9285     |    ~5.000    |
+| 1             | 28,10571      | /           |864,68838    |    /         |
+| 2             | 0,03464       | 54,99231    |0,66741      | 6,45223      |
+| 3             | 0,02343       | 56,25519    |0,57571      | 5,14595      |

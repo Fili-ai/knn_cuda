@@ -6,8 +6,7 @@ __global__ void cosine_distance_gpu(const float * ref,
                                     const int     query_nb,
                                     const int     dim,
                                     float *       dist,
-                                    int *         index, 
-                                    const int     iter, 
+                                    int *         index,  
                                     const int     chunk) {
     
     /**
@@ -19,7 +18,6 @@ __global__ void cosine_distance_gpu(const float * ref,
      * @param dim dimension of each point (same for queries and references)
      * @param index array containing all reference's indexes
      * @param dist array containing all reference's distances
-     * @param iter number of queries already processed
      * @param chunk number of query processed per iteration
     */
 

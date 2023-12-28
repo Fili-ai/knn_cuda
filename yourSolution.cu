@@ -4,8 +4,8 @@
 #include <cuda_runtime.h>
 
 //#include "Solution1.cu"
-//#include "Solution2.cu"
-#include "Solution3.cu"
+#include "Solution2.cu"
+//#include "Solution3.cu"
 //#include "Solution4.cu"
 
 /**
@@ -44,7 +44,7 @@ bool your_solution(const float * ref,
 
     
     int chunk = query_nb;
-    bool use_chunk = false;
+    bool use_chunk = true;
 
     //10240 is maximum chunk size to avoid memory allocation error
     if(chunk > 10240){
@@ -96,6 +96,8 @@ bool your_solution(const float * ref,
             }
 
             gpuErrchk(cudaMemcpy(query_gpu, query_temp, chunk*dim*sizeof(float), cudaMemcpyHostToDevice));
+
+            cudaFree(query_temp);
         }
 
         cudaDeviceSynchronize();
@@ -105,20 +107,22 @@ bool your_solution(const float * ref,
         //knn_gpu_1_Block_Grid<<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
 
         // Solution - 2
-        /*
+        
         dim3 block_size(32, 1, 1);
-        dim3 grid((query_nb + block_size.x - 1) / block_size.x, 1, 1);
-        knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
-        */
+        dim3 grid((chunk + block_size.x - 1) / block_size.x, 1, 1);
+        knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu, chunk);
+        
 
         // Solution - 3
+        /*
         dim3 block_size(32, 1, 1);
         dim3 grid((chunk + block_size.x - 1) / block_size.x, 1, 1);
         dim3 block_size_cosine_distance(32, 1, 1);
         dim3 grid_cosine_distance((ref_nb*chunk + block_size.x - 1) / block_size.x, 1, 1);
-        cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dist_gpu, index_gpu, iter, chunk);
+        cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dist_gpu, index_gpu, chunk);
         insertion_sort_gpu<<<grid, block_size>>>(ref_nb, chunk, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
-        
+        */
+
         // Solution - 4
         /*
 
@@ -169,7 +173,6 @@ bool your_solution(const float * ref,
             gpuErrchk(cudaMemcpy(knn_index, knn_index_gpu, query_nb*k*sizeof(int), cudaMemcpyDeviceToHost));
         }
         else{
-
             // Temporary location of knn_index and knn_distance of a specific chunk
             float * knn_dist_host;
             gpuErrchk(cudaMallocHost(&knn_dist_host, chunk*k*sizeof(float)));
@@ -185,6 +188,8 @@ bool your_solution(const float * ref,
                     knn_index[idx + k_elems*query_nb + iter] = knn_index_host[idx + k_elems*chunk];
                 }
             }
+            cudaFree(knn_dist_host);
+            cudaFree(knn_index_host);
         }
     }
 
@@ -197,10 +202,6 @@ bool your_solution(const float * ref,
 
     cudaFree(index_gpu);
     cudaFree(dist_gpu);
-
-    cudaFree(query_temp);
-    cudaFree(knn_dist_host);
-    cudaFree(knn_index_host);
 
     return true;
 }

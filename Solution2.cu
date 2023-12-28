@@ -68,7 +68,8 @@ __device__ float cosine_distance_gpu(const float * ref,
                                      const int     query_nb,
                                      const int     dim,
                                      const int     ref_index,
-                                     const int     query_index) {
+                                     const int     query_index,
+                                     const int     chunk) {
 
     /**
      * @brief function to calculate the cosine distance of a reference and a query
@@ -83,10 +84,11 @@ __device__ float cosine_distance_gpu(const float * ref,
     */
 
     double dot = 0.0, denom_a = 0.0, denom_b = 0.0 ;
+    #pragma unroll
     for(unsigned int d = 0u; d < dim; ++d) {
-        dot += ref[d * ref_nb + ref_index] * query[d * query_nb + query_index] ;
+        dot += ref[d * ref_nb + ref_index] * query[d * chunk + query_index];
         denom_a += ref[d * ref_nb + ref_index] * ref[d * ref_nb + ref_index] ;
-        denom_b += query[d * query_nb + query_index] * query[d * query_nb + query_index] ;
+        denom_b += query[d * chunk + query_index] * query[d * chunk + query_index] ;
     }
     return dot / (sqrt(denom_a) * sqrt(denom_b)) ;
 }
@@ -100,7 +102,8 @@ __global__ void knn_gpu(const float * ref,
                         float *       knn_dist,
                         int *         knn_index,
                         int *         index, 
-                        float *       dist){
+                        float *       dist,
+                        const int     chunk){
 
     /**
      * @brief function to calculate all the query-reference distance and sort them
@@ -117,14 +120,14 @@ __global__ void knn_gpu(const float * ref,
     */
 
     // Each thread work on a small number of query 
-    for (int query_index = blockIdx.x * blockDim.x + threadIdx.x; query_index < query_nb; query_index += blockDim.x * gridDim.x) {
+    for (int query_index = blockIdx.x * blockDim.x + threadIdx.x; query_index < chunk; query_index += blockDim.x * gridDim.x) {
         
         // Compute all query-reference distances
         for(int reference = 0; reference < ref_nb; reference++){
-            index[query_index + reference*query_nb] =  reference;
-            dist[query_index + reference*query_nb] = cosine_distance_gpu(ref, ref_nb, query, query_nb, dim, reference, query_index);
+            index[query_index + reference*chunk] =  reference;
+            dist[query_index + reference*chunk] = cosine_distance_gpu(ref, ref_nb, query, query_nb, dim, reference, query_index, chunk);
         } 
 
-        insertion_sort_gpu(dist, index, ref_nb, k, query_nb, query_index, knn_index, knn_dist);               
+        insertion_sort_gpu(dist, index, ref_nb, k, chunk, query_index, knn_index, knn_dist);               
     }
 }

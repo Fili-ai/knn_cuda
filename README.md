@@ -63,8 +63,7 @@ Each solution has some lacks of optimization. I think the possible weak points o
 
 ## Perfomance Comparison
 
-I tested all of my solutions and CPU one to 3 possible settings of parameters gave me by default. \
-__Disclaimer__: I didn't try the second possible setting of parameters because it has so large numbers that Google Colab returned me a Memory Allocation Error and during the test, Solution 1 and CPU took so much time that it only confused the chart about times of executions.
+I tested all of my solutions and CPU one to 4 possible settings of parameters gave me by default.
 
 | parameters / n° set of Parameter      | 0 | 1 |2| 3 |
 | :----------- | :-----------: | :----------: |:----------: | -----------: |

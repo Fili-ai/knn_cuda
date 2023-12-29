@@ -2,11 +2,22 @@
 #include <iostream>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "config.h"
 
-//#include "Solution1.cu"
+// in case of wrong compiling, it start solution 1
+#ifndef SOLUZIONE
+#define SOLUZIONE 1
+#endif
+
+#if SOLUZIONE == 1
+#include "Solution1.cu"
+#elif SOLUZIONE == 2
 #include "Solution2.cu"
-//#include "Solution3.cu"
-//#include "Solution4.cu"
+#elif SOLUZIONE == 3
+#include "Solution3.cu"
+#else
+#include "Solution4.cu"
+#endif
 
 /**
 * Error checking function;
@@ -101,10 +112,11 @@ bool your_solution(const float * ref,
 
         cudaDeviceSynchronize();
         // ---------------------------------- Kernel launching -------------------------------
-        
+#if SOLUZIONE == 1       
         // Solution - 1
-        //knn_gpu<<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
+        knn_gpu<<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
 
+#elif SOLUZIONE == 2
         // Solution - 2
         
         dim3 block_size(32, 1, 1);
@@ -112,19 +124,17 @@ bool your_solution(const float * ref,
         knn_gpu<<<grid, block_size>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu, chunk);
         
 
+#elif SOLUZIONE == 3
         // Solution - 3
-        /*
         dim3 block_size(32, 1, 1);
         dim3 grid((chunk + block_size.x - 1) / block_size.x, 1, 1);
         dim3 block_size_cosine_distance(32, 1, 1);
         dim3 grid_cosine_distance((ref_nb*chunk + block_size.x - 1) / block_size.x, 1, 1);
         cosine_distance_gpu<<<grid_cosine_distance, block_size_cosine_distance>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, dist_gpu, index_gpu, chunk);
         insertion_sort_gpu<<<grid, block_size>>>(ref_nb, chunk, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
-        */
 
+#else
         // Solution - 4
-        /*
-
         // memory management 
         float * dots;
         gpuErrchk(cudaMallocManaged(&dots, query_nb*ref_nb*dim*sizeof(float)));
@@ -163,7 +173,7 @@ bool your_solution(const float * ref,
         //cudaFree(sum_denom_a);
         //cudaFree(sum_denom_b);
         insertion_sort_gpu<<<grid, block_size>>>(ref_nb, query_nb, dim, k, knn_dist_gpu, knn_index_gpu, index_gpu, dist_gpu);
-        */
+#endif
 
         // ---------------------------------- Transfering data on host -------------------------------
         

@@ -24,6 +24,8 @@ Otherwise, you can use the Python notebook on the repo to run the code in Google
 - On your GitHub go in click on your profile icon -> settings -> developer settings -> personal access token and create one. [Guide for creating a token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
 - Now compile the cells in the notebook on Google Colab and then you can run, modify, and test the code on it.
 
+To choose which solution to test, in _config.h_ modify the variable _SOLUZIONE_ with the number of the solution to start.
+
 ## Abstract
 
 This is the final project of the course "High Performance Graph and Data Analytics" (HPDGA) attended at Politecnico of Milan. The challenge is to develop a K-Nearest Neighbors (KNN) algorithm that runs on GPU Nvidia using C, C++ and Cuda as programming languages.

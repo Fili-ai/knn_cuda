@@ -103,7 +103,7 @@ bool your_solution(const float * ref,
         // ---------------------------------- Kernel launching -------------------------------
         
         // Solution - 1
-        //knn_gpu_1_Block_Grid<<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
+        //knn_gpu<<<1, 1>>>(ref_gpu, ref_nb, query_gpu, query_nb, dim, k, knn_dist_gpu, knn_index_gpu);
 
         // Solution - 2
         

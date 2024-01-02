@@ -1,8 +1,13 @@
 # High-Performance Data and Graph Analytics - Fall 2023 Contest
 
+## Keywords
+
+GPU, Cuda, C, C++, KNN, K-Nearest Neighbors
+
 ## Table of Content
 
 - [High-Performance Data and Graph Analytics - Fall 2023 Contest](#high-performance-data-and-graph-analytics---fall-2023-contest)
+  - [Keywords](#keywords)
   - [Table of Content](#table-of-content)
   - [Usage](#usage)
   - [Abstract](#abstract)
@@ -24,7 +29,10 @@ Otherwise, you can use the Python notebook on the repo to run the code in Google
 - On your GitHub go in click on your profile icon -> settings -> developer settings -> personal access token and create one. [Guide for creating a token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
 - Now compile the cells in the notebook on Google Colab and then you can run, modify, and test the code on it.
 
-To choose which solution to test, in _config.h_ modify the variable _SOLUZIONE_ with the number of the solution to start.
+To choose:
+
+- Solution to test -> in _config.h_ modify the variable _SOLUZIONE_ with the number of the solution to start.
+- Set of paramaters -> in _config.h_ modify the variable _SET_PARAMETERS_ with the number of the set of parameters to use.
 
 ## Abstract
 

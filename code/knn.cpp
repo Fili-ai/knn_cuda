@@ -9,6 +9,12 @@
 #include <iostream>
 
 #include "yourSolution.h"
+#include "config.h"
+
+// in case of wrong compiling, it start with set of params number 0
+#ifndef SET_PARAMETERS
+#define SET_PARAMETERS 0
+#endif
 
 /**
  * Initializes randomly the reference and query points.
@@ -245,31 +251,37 @@ bool test(const float * ref,
  * 3. Test the different implementation of the k-NN algorithm.
  */
 int main(void) {
+
+    #if SET_PARAMETERS == 0
     // Parameters 0 (to develop your solution)
-    //const int ref_nb   = 4096;
-    //const int query_nb = 1024;
-    //const int dim      = 64;
-    //const int k        = 16;
+    const int ref_nb   = 4096;
+    const int query_nb = 1024;
+    const int dim      = 64;
+    const int k        = 16;
     
-
+    #elif SET_PARAMETERS == 1     
     // Parameters 1
-    //const int ref_nb   = 16384;
-    //const int query_nb = 4096;
-    //const int dim      = 128;
-    //const int k        = 100;
+    const int ref_nb   = 16384;
+    const int query_nb = 4096;
+    const int dim      = 128;
+    const int k        = 100;
 
+    #elif SET_PARAMETERS == 2
     // Parameters 2
     const int ref_nb   = 163840;
     const int query_nb = 40960;
     const int dim      = 128;
     const int k        = 16;
 
+    #else
     // Parameters 3
-    // const int ref_nb   = 16384;
-    // const int query_nb = 4096;
-    // const int dim      = 1280;
-    // const int k        = 16;
+    const int ref_nb   = 16384;
+    const int query_nb = 4096;
+    const int dim      = 1280;
+    const int k        = 16;
 
+    #endif
+    
     // Display
     printf("PARAMETERS\n");
     printf("- Number reference points : %d\n",   ref_nb);
